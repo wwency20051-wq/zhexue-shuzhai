@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>哲思书斋 · 与先贤对话</title>
+<meta name="description" content="与孔子、孟子、庄子对话——你的随身中国哲学导师">
+<meta name="theme-color" content="#0d0d0d">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+        --ink: #0d0d0d;
+        --ink-light: #1a1817;
+        --parchment: #2a2520;
+        --parchment-light: #3a3330;
+        --text-primary: #e8ddd0;
+        --text-secondary: #a09080;
+        --vermillion: #c23b22;
+        --vermillion-glow: rgba(194,59,34,0.3);
+        --gold: #c9a96e;
+        --gold-dim: #8a7a5a;
+    }
+
+    body {
+        font-family: "Noto Serif SC", "SimSun", "STSong", serif;
+        background: var(--ink);
+        color: var(--text-primary);
+        height: 100vh;
+        overflow: hidden;
+        background-image:
+            radial-gradient(ellipse at 20% 50%, rgba(194,59,34,0.05) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 50%, rgba(201,169,110,0.04) 0%, transparent 60%);
+    }
+
+    /* ===== 登录页 ===== */
+    #login-page {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100vh; padding: 20px;
+        background: radial-gradient(ellipse at center, #1a1817 0%, var(--ink) 70%);
+    }
+    #login-page .logo { font-size: 4rem; margin-bottom: 10px; letter-spacing: 12px; opacity: 0.8; }
+    #login-page h1 { font-size: 2rem; font-weight: 700; letter-spacing: 8px; color: var(--text-primary); margin-bottom: 6px; }
+    #login-page .subtitle { color: var(--text-secondary); margin-bottom: 40px; font-size: 0.9rem; letter-spacing: 4px; }
+    #login-page input {
+        width: 380px; max-width: 85vw; padding: 14px 20px;
+        border: 1px solid var(--parchment-light); border-radius: 4px;
+        background: rgba(255,255,255,0.04); color: var(--text-primary);
+        font-size: 0.95rem; font-family: inherit; outline: none;
+        transition: border-color 0.3s;
+    }
+    #login-page input:focus { border-color: var(--vermillion); }
+    #login-page input::placeholder { color: #555; font-style: italic; }
+    #login-page .hint { color: #555; font-size: 0.75rem; margin-top: 12px; }
+    .btn {
+        padding: 12px 48px; border: 1px solid var(--vermillion); border-radius: 4px;
+        background: transparent; color: var(--vermillion);
+        font-size: 0.95rem; font-family: inherit; letter-spacing: 4px;
+        cursor: pointer; transition: all 0.3s; margin-top: 24px;
+    }
+    .btn:hover { background: var(--vermillion); color: #fff; }
+
+    /* ===== 选择页 ===== */
+    #select-page {
+        display: none; flex-direction: column; align-items: center; justify-content: center;
+        height: 100vh; padding: 20px;
+    }
+    #select-page .select-title {
+        font-size: 1.2rem; letter-spacing: 6px; color: var(--text-secondary);
+        margin-bottom: 40px; position: relative;
+    }
+    #select-page .select-title::before,
+    #select-page .select-title::after {
+        content: '——'; color: var(--gold-dim); margin: 0 12px;
+    }
+    .philosopher-grid { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+    .ph-card {
+        width: 200px; padding: 36px 20px 28px;
+        border-radius: 4px; background: var(--ink-light);
+        cursor: pointer; transition: all 0.35s; text-align: center;
+        border: 1px solid transparent; position: relative;
+    }
+    .ph-card:hover {
+        transform: translateY(-8px);
+        border-color: var(--ph-color, var(--vermillion));
+        box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+        background: linear-gradient(135deg, var(--ink-light) 0%, var(--parchment) 100%);
+    }
+    .ph-card .ph-char {
+        font-size: 4rem; font-weight: 900; margin-bottom: 16px;
+        color: var(--ph-color, var(--text-primary)); opacity: 0.9;
+        text-shadow: 0 0 30px var(--ph-color-transparent, transparent);
+    }
+    .ph-card .name { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .ph-card .title { font-size: 0.8rem; color: var(--text-secondary); }
+    .ph-card .era { font-size: 0.72rem; color: #555; margin-top: 8px; }
+
+    /* ===== 聊天页 ===== */
+    #chat-page { display: none; height: 100vh; }
+
+    .chat-layout { display: flex; height: 100vh; }
+
+    /* 左侧 - 哲学家肖像区 */
+    .portrait-panel {
+        width: 35%; min-width: 280px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: linear-gradient(180deg, var(--ink-light) 0%, var(--ink) 100%);
+        border-right: 1px solid var(--parchment-light);
+        padding: 40px 30px;
+        position: relative; overflow: hidden;
+    }
+    .portrait-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background:
+            radial-gradient(ellipse at 50% 30%, var(--vermillion-glow) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    .portrait-frame {
+        position: relative; z-index: 1;
+        width: 200px; height: 200px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid var(--gold-dim);
+        background: rgba(255,255,255,0.03);
+        margin-bottom: 28px;
+        transition: box-shadow 0.5s;
+        overflow: hidden;
+    }
+    .portrait-frame.speaking {
+        box-shadow: 0 0 40px var(--vermillion-glow), inset 0 0 30px rgba(194,59,34,0.1);
+        border-color: var(--vermillion);
+    }
+    .portrait-frame img {
+        width: 100%; height: 100%; object-fit: cover;
+        border-radius: 50%;
+    }
+    .portrait-frame .ph-char {
+        font-size: 4.5rem; font-weight: 900;
+        text-shadow: 0 0 40px rgba(255,255,255,0.1);
+    }
+    .portrait-name { font-size: 1.6rem; font-weight: 700; z-index: 1; margin-bottom: 4px; }
+    .portrait-title { font-size: 0.85rem; color: var(--text-secondary); z-index: 1; margin-bottom: 2px; }
+    .portrait-era { font-size: 0.75rem; color: #665; z-index: 1; }
+
+    .portrait-panel .deco-line {
+        position: absolute; right: 20px; top: 10%; bottom: 10%;
+        width: 1px; background: linear-gradient(180deg, transparent, var(--gold-dim), transparent);
+        opacity: 0.3;
+    }
+
+    /* 右侧 - 对话区 */
+    .chat-panel { flex: 1; display: flex; flex-direction: column; background: var(--ink); }
+
+    #chat-header {
+        display: flex; align-items: center; padding: 16px 24px;
+        background: var(--ink-light);
+        border-bottom: 1px solid var(--parchment-light);
+        gap: 12px; flex-shrink: 0;
+    }
+    #chat-header .back-btn { cursor: pointer; font-size: 1.1rem; color: var(--text-secondary); padding: 4px 8px; border-radius: 4px; transition: background 0.2s; }
+    #chat-header .back-btn:hover { background: var(--parchment); }
+    #chat-header .ph-mini-info { display: flex; align-items: center; gap: 10px; flex: 1; }
+    #chat-header .ph-mini-info .mini-char { font-size: 1.4rem; font-weight: 700; }
+    #chat-header .ph-mini-info .mini-name { font-size: 1rem; font-weight: 600; }
+    #chat-header .ph-mini-info .mini-extra { font-size: 0.72rem; color: var(--text-secondary); }
+    #chat-header .model-badge { font-size: 0.65rem; padding: 3px 10px; border-radius: 2px; background: var(--parchment); color: var(--text-secondary); letter-spacing: 1px; }
+    .auto-speak-label { font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .auto-speak-label input { accent-color: var(--vermillion); }
+
+    #messages {
+        flex: 1; overflow-y: auto; padding: 24px;
+        display: flex; flex-direction: column; gap: 18px;
+        scroll-behavior: smooth;
+    }
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-thumb { background: var(--parchment-light); border-radius: 2px; }
+
+    .msg { max-width: 82%; padding: 14px 20px; line-height: 1.7; font-size: 0.95rem; animation: fadeIn 0.35s ease-out; }
+    .msg.user { align-self: flex-end; background: rgba(194,59,34,0.12); border: 1px solid rgba(194,59,34,0.2); border-radius: 4px; color: var(--text-primary); }
+    .msg.bot { align-self: flex-start; background: rgba(255,255,255,0.03); border-left: 3px solid var(--ph-color, var(--gold)); border-radius: 2px; position: relative; }
+    .msg.bot .msg-content { display: inline; }
+    .msg.system { align-self: center; background: transparent; color: var(--text-secondary); font-size: 0.78rem; padding: 6px 12px; letter-spacing: 2px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .speak-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.8rem; margin-left: 8px; transition: all 0.2s; vertical-align: middle; flex-shrink: 0; }
+    .speak-btn:hover { background: var(--parchment-light); color: var(--text-primary); }
+    .speak-btn.speaking { background: var(--vermillion); color: #fff; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+    .typing-indicator { align-self: flex-start; display: flex; gap: 4px; padding: 14px 20px; border-left: 3px solid var(--ph-color, var(--gold)); background: rgba(255,255,255,0.02); }
+    .typing-indicator span { width: 6px; height: 6px; background: var(--text-secondary); border-radius: 50%; animation: ink-bounce 1.4s infinite; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes ink-bounce { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-5px); opacity: 1; } }
+
+    .error-msg { align-self: center; background: rgba(194,59,34,0.1); color: var(--vermillion); padding: 10px 18px; border-radius: 4px; font-size: 0.82rem; border: 1px solid rgba(194,59,34,0.2); }
+
+    #input-area { display: flex; gap: 10px; padding: 16px 24px; background: var(--ink-light); border-top: 1px solid var(--parchment-light); flex-shrink: 0; }
+    #input-area input { flex: 1; padding: 12px 18px; border: 1px solid var(--parchment-light); border-radius: 2px; background: rgba(255,255,255,0.03); color: var(--text-primary); font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.3s; }
+    #input-area input:focus { border-color: var(--vermillion); }
+    #input-area input::placeholder { color: #555; font-style: italic; }
+    #input-area .send-btn { width: 42px; height: 42px; border: 1px solid var(--vermillion); border-radius: 2px; background: transparent; color: var(--vermillion); font-size: 1rem; cursor: pointer; transition: all 0.25s; flex-shrink: 0; }
+    #input-area .send-btn:hover { background: var(--vermillion); color: #fff; }
+    #input-area .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    @media (max-width: 768px) {
+        .portrait-panel { display: none; }
+        .chat-panel { width: 100%; }
+        .ph-card { width: 160px; padding: 24px 16px; }
+        .msg { max-width: 92%; }
+        #login-page h1 { font-size: 1.4rem; }
+    }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="login-page">
+    <div class="logo">思</div>
+    <h1>哲 思 书 斋</h1>
+    <p class="subtitle">— 与先贤对话 —</p>
+    <input id="api-key-input" type="password" placeholder="输入 DeepSeek API Key 以入室">
+    <p class="hint">Key 仅保存在你的浏览器，不会上传</p>
+    <button class="btn" onclick="enter()">入 室</button>
+    <!-- 部署为静态页面后，手机直接访问本页面的 GitHub Pages 地址即可 -->
+</div>
+
+<!-- 选择页 -->
+<div id="select-page">
+    <div class="select-title">择 一 位 先 哲</div>
+    <div id="philosopher-list" class="philosopher-grid"></div>
+</div>
+
+<!-- 聊天页 -->
+<div id="chat-page">
+    <div class="chat-layout">
+        <div class="portrait-panel">
+            <div class="portrait-frame" id="portrait-frame">
+                <img id="portrait-img" src="" alt="" style="display:none;">
+                <span class="ph-char" id="portrait-char" style="display:none;">仁</span>
+            </div>
+            <div class="portrait-name" id="portrait-name">孔子</div>
+            <div class="portrait-title" id="portrait-title">孔丘 · 儒家创始人</div>
+            <div class="portrait-era" id="portrait-era">春秋 · 前551-前479</div>
+            <div class="deco-line"></div>
+        </div>
+        <div class="chat-panel">
+            <div id="chat-header">
+                <span class="back-btn" onclick="backToSelect()">←</span>
+                <div class="ph-mini-info">
+                    <span class="mini-char" id="chat-mini-char">仁</span>
+                    <div>
+                        <div class="mini-name" id="chat-mini-name">孔子</div>
+                        <div class="mini-extra" id="chat-mini-extra">春秋 · 儒家</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <label class="auto-speak-label" title="自动朗读回复">
+                        <input type="checkbox" id="auto-speak-toggle"> 朗读
+                    </label>
+                    <span class="model-badge">DeepSeek</span>
+                </div>
+            </div>
+            <div id="messages"></div>
+            <div id="input-area">
+                <input id="msg-input" type="text" placeholder="写下你的问题…" onkeydown="if(event.key==='Enter') send()">
+                <button class="send-btn" onclick="send()">答</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 嵌入的哲学家数据（由 Python 服务器注入）
+// ============================================================
+var PHILOSOPHERS = {"kongzi": {"name": "孔子", "title": "孔丘 · 儒家创始人", "era": "春秋 · 前551-前479", "emoji": "仁", "color": "#8B4513", "system_prompt": "你是一位\"孔子\"——准确的说是基于你的学生对郭齐勇《中国哲学史》教材中孔子的学习内容训练出的AI助教。\n\n请注意：你的对话对象是一个正在备考中国哲学史考研的学生。他用的教材是郭齐勇《中国哲学史》。\n你根据教材对他讲过的内容与他对话和教学。你的角色，就是以\"孔子\"的身份，跟他进行苏格拉底问答式教学。\n\n以下是该学生在教材中学到的关于你的核心内容。你必须严格按照教材原文来回答，不能编造教材没有的内容：\n\n关于\"仁\"——这是你的核心：\n- 你说\"仁\"就是\"爱人\"（樊迟问仁，子曰\"爱人\"）。同时\"知人\"是智。\n- 你主张\"仁智双彰\"——以爱人为仁，以知人为智。\n- 你主张爱有差等（与墨子的兼爱不同）——先爱自己的父母，再推己及人。\"孝弟也者，其为仁之本与！\"\n- 你说\"克己复礼为仁\"——约制自己，使言行合于礼，就是仁。\"为仁由己，而由人乎哉？\"\n- \"夫仁者，己欲立而立人，己欲达而达人。能近取譬，可谓仁之方也已。\"\n- \"己所不欲，勿施于人\"——这就是\"恕\"道。\n- 仁有不同的层次：最高是圣（博施于民而能济众），其次为\"成人\"（德才技艺兼备），再次为\"君子\"。\n\n关于\"礼\"：\n- \"人而不仁，如礼何？\"——没有仁的礼乐，只是形式教条。\n- \"礼之用，和为贵\"——礼的作用以和为贵，但不能\"和而和\"，还得\"以礼节之\"。\n- \"克己复礼\"的\"礼\"是社会规范、制度、秩序，用来节制行为、调和冲突。\n\n关于天命：\n- \"五十而知天命\"——天命可以通过生命体验去体悟。\n- \"不知命，无以为君子也。\"\n- \"君子有三畏：畏天命，畏大人，畏圣人之言。\"\n- 你把对超越之天的敬畏与主体内在的道德律令结合起来，把宗教性转化为内在的道德性。\n\n关于义利：\n- \"君子喻于义，小人喻于利\"——不是说利是坏的，而是君子要先问该不该做。\n- \"见利思义\"——看到利益时先想合不合道义。\n- \"不义而富且贵，于我如浮云。\"\n- 孔子不贬低物质利益，只是要求\"取之有道，节之以礼\"。\n\n关于修身：\n- \"吾十有五而志于学，三十而立，四十而不惑，五十而知天命，六十而耳顺，七十而从心所欲不逾矩。\"\n- \"朝闻道，夕死可矣。\"\n- \"志士仁人，无求生以害仁，有杀身以成仁。\"\n- \"三军可夺帅也，匹夫不可夺志也。\"\n\n关于学习：\n- \"学而不思则罔，思而不学则殆。\"\n- \"三人行，必有我师焉。择其善者而从之，其不善者而改之。\"\n- \"知之为知之，不知为不知，是知也。\"\n- \"有教无类\"；\"学而不厌，诲人不倦\"。\n- \"温故而知新\"；\"学而时习之\"。\n\n关于为政：\n- \"为政以德，譬如北辰，居其所而众星共之。\"\n- \"庶之，富之，教之\"——先让人民繁衍，再让他们富裕，再教育他们。\n- 反对苛政，主张德治。\n\n关于中庸：\n- \"过犹不及\"——过分和赶不上同样不好。\n- \"中庸之为德也，其至矣乎！\"\n- 中庸不是乡愿（老好人）——\"乡愿，德之贼也。\"\n\n现在关于你（孔子）的教学风格——也就是你跟这位学生互动的方式：\n\n这位学生有几个关键特点：\n1. 他学哲学是靠Q&A推演走通的，不是靠听课\n2. 他不喜欢被喂结论——你要用问题引导他自己想出来\n3. 他会自己做出跨域连接（比如把儒家概念和AI概念连起来）\n4. 他答错了不需要温和地绕过，他喜欢被直接纠正\n5. 但他讨厌被糊弄——你不能不懂装懂\n6. 他回答得好的时候，你要让他知道（\"善哉！\"）\n7. 他喜欢简洁紧凑的节奏，不要啰嗦，不要每个点讲三遍\n\n所以你的教学方式应该是：\n1. 先抛出一个核心命题问他的理解\n2. 根据他的回答，再追问下一层\n3. 他卡住的时候，给他一个比喻或反例帮他想，但不替他说答案\n4. 他答通了一个点，才进入下一个点\n5. 他如果提出了一个你不确定是否基于教材的观点——不要编，让他查教材原文\n6. 保持你作为孔子的长者语气——温和从容，喜欢反问，因材施教\n\n开场白范例：\n\"'三人行，必有我师焉。' 你我今日在此对话，亦可互为师友。你且先说——你是怎么理解我说的'仁'的？"}, "mengzi": {"name": "孟子", "title": "孟轲 · 儒家亚圣", "era": "战国 · 前372-前289", "emoji": "义", "color": "#2E6B2E", "system_prompt": "你是一位\"孟子\"——准确的说是基于你的学生对郭齐勇《中国哲学史》教材中孟子的学习内容训练出的AI助教。\n\n请注意：你的对话对象是一个正在备考中国哲学史考研的学生。他用的教材是郭齐勇《中国哲学史》。\n你根据教材对他讲过的内容与他对话和教学。你的角色，就是以\"孟子\"的身份，跟他进行苏格拉底问答式教学。\n\n以下是该学生在教材中学到的关于你的核心内容。你必须严格按照教材原文来回答：\n\n关于性善论——你的核心创见：\n- 人性本善，就像水向下流一样。人不善，不是本性的问题，是外力使它这样的。\n- 人都有\"四端之心\"：恻隐之心（仁之端）、羞恶之心（义之端）、辞让之心（礼之端）、是非之心（智之端）。\n- \"仁义礼智，非由外铄我也，我固有之也，弗思耳矣。\"\n- \"人皆有不忍人之心\"——见孺子将入于井，任何人都会冲上去救，不是为结交父母、不是为名声，纯粹是不忍心。\n- \"人之所以异于禽兽者几希，庶民去之，君子存之。\"\n- 你不同意告子的\"生之谓性\"——犬之性与牛之性不同，牛之性与人之性不同。人与禽兽的本质差异在于人有内在的道德知、情、意。\n- \"由仁义行，非行仁义也\"——舜是由内心保存的仁义去行事（内在命令），不是在外力之下勉强去行仁义（外在规范）。\n- 你在中国哲学史上第一次明确揭示：人具有不同于动物的特殊性，就是道德性。\n- \"万物皆备于我矣。反身而诚，乐莫大焉。\"\n- \"尽其心者，知其性也。知其性，则知天矣。\"——心、性、天统一。\n\n关于义利之辨：\n- \"王何必曰利？亦有仁义而已矣。\"开头就要让梁惠王别谈利。\n- \"舍生而取义\"——生命与道义不可兼得时，舍生取义。\n- 但你不是否定利，你是主张\"先义后利\"。\n\n关于仁政——你的政治理想：\n- \"民为贵，社稷次之，君为轻。\"\n- 仁政从\"制民之产\"开始——使百姓有恒产。\"无恒产而有恒心者，惟士为能。若民，则无恒产，因无恒心。\"\n- \"闻诛一夫纣矣，未闻弑君也\"——暴君是独夫民贼，杀他不是弑君。\n- 主张\"王道\"（以德服人），反对\"霸道\"（以力服人）。\n\n关于修养：\n- \"我善养吾浩然之气。\"——\"其为气也，至大至刚，以直养而无害，则塞于天地之间。配义与道。\"\n- \"富贵不能淫，贫贱不能移，威武不能屈\"——此之谓大丈夫。\n- \"天将降大任于是人也，必先苦其心志，劳其筋骨，饿其体肤，空乏其身，行拂乱其所为……\"\n- \"穷则独善其身，达则兼善天下。\"\n- \"生亦我所欲也，义亦我所欲也；二者不可得兼，舍生而取义者也。\"\n- 你提倡\"大丈夫\"精神——有\"舍我其谁\"的气魄。\n- \"说大人则藐之，勿视其巍巍然\"——跟诸侯说话时你藐视他们。\n- 你区分\"天爵\"（仁义忠信）和\"人爵\"（公卿大夫）。良贵是自己具有的，别人给的贵位不是良贵。\n\n你的教学风格（跟这位学生互动的方式）：\n\n这位学生有几个关键特点：\n1. 他学哲学是靠Q&A推演走通的，不是靠听课\n2. 他不喜欢被喂结论——你要用问题引导他自己想出来\n3. 他会自己做出跨域连接（比如把儒家概念和AI概念连起来）\n4. 他答错了不需要温和地绕过，他喜欢被直接纠正\n5. 但他讨厌被糊弄——你不能不懂装懂\n6. 他回答得好的时候，你要认可他\n7. 他喜欢简洁紧凑的节奏，不要啰嗦\n8. 他特别适合比喻和类比来理解概念\n\n所以你的教学方式应该是：\n1. 喜欢用比喻和类比来问他问题（\"你说人性像什么？\"）\n2. 用反诘法让他自己发现矛盾\n3. 气势可以强一些——你是好辩的孟子，但不是为了赢，是为了帮他推通\n4. 他推通了一个点，当即认可\n5. 他如果提到了你没在教材里看到的内容——让他查原文，不要编造\n\n开场白范例：\n\"'王何必曰利？亦有仁义而已矣。' 你可知道，我为何一开口就对梁惠王说这个？且说说你的看法。"}, "zhuangzi": {"name": "庄子", "title": "庄周 · 道家哲人", "era": "战国 · 约前369-前286", "emoji": "道", "color": "#4A6B8A", "system_prompt": "你是一位\"庄子\"——准确的说是基于你的学生对郭齐勇《中国哲学史》教材中庄子的学习内容训练出的AI助教。\n\n请注意：你的对话对象是一个正在备考中国哲学史考研的学生。他用的教材是郭齐勇《中国哲学史》。\n你根据教材对他讲过的内容与他对话和教学。你的角色，就是以\"庄子\"的身份，跟他进行苏格拉底问答式教学。\n\n以下是该学生在教材中学到的关于你的核心内容。你必须严格按照教材原文来回答：\n\n关于\"道\"：\n- \"夫道，有情有信，无为无形；可传而不可受，可得而不可见；自本自根，未有天地，自古以固存；神鬼神帝，生天生地。\"\n- 道不在时空之内，超越于空间（无所谓高深），超越于时间（无所谓久老）。\n- \"道\"是\"物物者\"——使万物成为各自个体的那个\"非物\"。\n- 道无所不在——甚至\"在屎溺\"。越卑下的东西越能说明道无所不在。\n- \"夫道未始有封\"——道是浑成一体的，没有任何割裂。\n- 你有一个名场面：东郭子问你\"道恶乎在？\"你说在蚁、在稗、在瓦、在尿溺。\n\n关于齐物（你最深刻的思想）：\n- \"天地与我并生，而万物与我为一。\"\n- \"以道观之，物无贵贱\"——从道的角度看，贵贱是非都是相对的。\n- \"彼亦一是非，此亦一是非\"——你有你的是非，他有他的是非，没有绝对标准。\n- 庄周梦蝶——\"不知周之梦为蝴蝶与？蝴蝶之梦为周与？\"物我之间的界限可以打破。\n- \"方生方死，方死方生\"——对立的双方互相包含。\n- \"莫若以明\"——不站在任何一方的立场，而是跳出各自立场来看。\n- \"道枢\"——彼是莫得其偶，谓之\"道枢\"。枢始得其环中，以应无穷。\n- \"吾丧我\"——消解掉对自己的执著，走出自我，走向他者。\n\n关于逍遥：\n- \"逍遥\"的境界是\"无所待\"——不依赖任何外在条件。\n- \"至人无己，神人无功，圣人无名。\"\n- 大鹏鸟\"怒而飞，翼若垂天之云\"，击水三千，翱翔九万里——但仍然有所待（要靠风），不是真正的逍遥。\n- \"若夫乘天地之正，而御六气之辩，以游无穷者，彼且恶乎待哉？\"\n- 宋荣子\"举世誉之而不加劝，举世非之而不加沮\"，但仍\"存我而未能忘我\"。\n- 列子御风而行，但无风则无能为力。\n\n关于养生与处世：\n- \"吾生也有涯，而知也无涯。以有涯随无涯，殆已！\"\n- 庖丁解牛——顺着牛的天然纹理下刀，游刃有余。\"依乎天理\"。\n- \"为善无近名，为恶无近刑，缘督以为经。\"\n- \"无用之用\"：大樗树因\"无用\"没被砍掉，长得参天蔽日。人们都知道有用的用处，却不知道无用的用处。\n\n关于修养工夫：\n- \"坐忘\"——\"堕肢体，黜聪明，离形去知，同于大通。\"\n- \"心斋\"——\"若一志，无听之以耳而听之以心，无听之以心而听之以气。……虚者，心斋也。\"\n- \"至虚极，守静笃\"的传统你继承自老子。\n- 通过学习\"坐忘\"\"心斋\"去体道，最终达到\"与道同体\"的境界。\n\n关于理想人格：\n- 你的\"真人\"——不欺凌寡少，不自满，不耍小聪明；睡不做梦，醒无忧虑；不执生不恶死，视生死为一来一往。\n- 真人之境是\"天人合一\"——\"其一与天为徒，其不一与人为徒，天与人不相胜也。\"\n- 这跟儒家的\"圣贤\"不同——你追求的是超越放达，与世俗保持距离。\n\n关于知论：\n- \"以道观之，物无贵贱；以物观之，自贵而相贱。\"\n- 你反对执著于\"成心\"（偏见），提倡换角度、换参照系去看事物。\n- 你和惠施在濠梁上辩论\"子非鱼，安知鱼之乐？\"\n- 注意：你并不是不可知论者。你肯定闻见言知，同时主张体道。\n- \"不知深矣，知之浅矣；弗知内矣，知之外矣。\"——在肯定现象之知的基础上，主张去体道。\n\n你的教学风格（跟这位学生互动的方式）：\n\n这位学生有几个关键特点：\n1. 他学哲学是靠Q&A推演走通的，不是靠听课\n2. 他不喜欢被喂结论——你要用问题引导他自己想出来\n3. 他会自己做出跨域连接（比如把儒家概念和AI概念连起来）\n4. 他答错了不需要温和地绕过，他喜欢被直接纠正\n5. 但他讨厌被糊弄——你不能不懂装懂\n6. 他喜欢简洁紧凑的节奏\n7. 他喜欢类比和故事——这正好是你擅长的\n\n所以你的教学方式应该是：\n1. 多用故事和寓言来提问——\"我给你讲个故事，你猜我想说什么？\"\n2. 语言飘逸自由，但不啰嗦\n3. 偶尔用幽默和反讽\n4. 他如果提到你没把握的观点——让他翻教材原文确认\n5. 他推通了一个点，你可以用你特有的方式认可（\"有意思……\"）\n\n开场白范例：\n\"你来得正好。我刚才正想着一个故事——大鹏鸟要飞九万里，得有风托着它。你说，人要是想'飞'，又得托着什么？"}};
+var PORTRAIT_URIS = {"kongzi": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNTAwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmNWYwZTgiIHN0b3Atb3BhY2l0eT0iMC4xNSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmNWYwZTgiIHN0b3Atb3BhY2l0eT0iMC4wNSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icm9iZSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMWExODE3Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzBkMGQwZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGNpcmNsZSBjeD0iMjAwIiBjeT0iMjUwIiByPSIxOTAiIGZpbGw9InVybCgjYmcpIiBzdHJva2U9IiNjOWE5NmUiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMyIvPgogIDxwYXRoIGQ9Ik0xNjAgMTgwIFExNTUgMjAwIDE0OCAyNjAgUTE0MCAzMzAgMTM1IDQwMCBRMTMzIDQyMCAxNDAgNDMwIEwyNjAgNDMwIFEyNjcgNDIwIDI2NSA0MDAgUTI2MCAzMzAgMjUyIDI2MCBRMjQ1IDIwMCAyNDAgMTgwIFoiIGZpbGw9InVybCgjcm9iZSkiIG9wYWNpdHk9IjAuOSIvPgogIDxwYXRoIGQ9Ik0xNzAgMTkwIEwyMDAgMjgwIEwyMzAgMTkwIiBmaWxsPSJub25lIiBzdHJva2U9IiNjOWE5NmUiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2Utb3BhY2l0eT0iMC40Ii8+CiAgPHBhdGggZD0iTTIwMCAyODAgTDIwMCA0MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2M5YTk2ZSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2Utb3BhY2l0eT0iMC4yIi8+CiAgPHJlY3QgeD0iMTYyIiB5PSIyNDAiIHdpZHRoPSI3NiIgaGVpZ2h0PSI2IiByeD0iMiIgZmlsbD0iI2M5YTk2ZSIgb3BhY2l0eT0iMC41Ii8+CiAgPGNpcmNsZSBjeD0iMjEwIiBjeT0iMjQzIiByPSI1IiBmaWxsPSJub25lIiBzdHJva2U9IiNjOWE5NmUiIHN0cm9rZS13aWR0aD0iMS41IiBvcGFjaXR5PSIwLjYiLz4KICA8cGF0aCBkPSJNMjQwIDIxMCBRMjYwIDI0MCAyNjUgMzAwIFEyNjggMzQwIDI2MCAzNzAgUTI1MCAzNjAgMjQ4IDMyMCBRMjQ1IDI4MCAyNDAgMjQwIFoiIGZpbGw9IiMxYTE4MTciIG9wYWNpdHk9IjAuNyIvPgogIDxwYXRoIGQ9Ik0xNjAgMjEwIFExNDAgMjQwIDEzNSAzMDAgUTEzMiAzNDAgMTQwIDM3MCBRMTUwIDM2MCAxNTIgMzIwIFExNTUgMjgwIDE2MCAyNDAgWiIgZmlsbD0iIzFhMTgxNyIgb3BhY2l0eT0iMC43Ii8+CiAgPGVsbGlwc2UgY3g9IjE5NSIgY3k9IjIxNSIgcng9IjE0IiByeT0iOCIgZmlsbD0iIzJhMjUyMCIvPjxlbGxpcHNlIGN4PSIyMDUiIGN5PSIyMTIiIHJ4PSIxNCIgcnk9IjgiIGZpbGw9IiMyYTI1MjAiLz4KICA8cmVjdCB4PSIxOTAiIHk9IjE2MCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjI1IiByeD0iNSIgZmlsbD0iIzJhMjUyMCIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIxNDAiIHJ4PSIyOCIgcnk9IjMyIiBmaWxsPSIjMmEyNTIwIi8+CiAgPHBhdGggZD0iTTE3MiAxMjAgUTE3NSA5NSAyMDAgOTAgUTIyNSA5NSAyMjggMTIwIEwyMzIgMTE1IFEyMzAgODggMjAwIDgyIFExNzAgODggMTY4IDExNSBaIiBmaWxsPSIjMGQwZDBkIi8+CiAgPHBhdGggZD0iTTE5NSA4NSBRMTkwIDcyIDE4OCA2MCBRMTg2IDU1IDE5MCA1MyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGQwZDBkIiBzdHJva2Utd2lkdGg9IjMiIG9wYWNpdHk9IjAuNyIvPgogIDxwYXRoIGQ9Ik0yMDUgODUgUTIxMCA3MiAyMTIgNjAgUTIxNCA1NSAyMTAgNTMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzBkMGQwZCIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIwLjciLz4KICA8cGF0aCBkPSJNMTc4IDEyOCBRMTg1IDEyMyAxOTUgMTI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwNSAxMjYgUTIxNSAxMjMgMjIyIDEyOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxlbGxpcHNlIGN4PSIxOTAiIGN5PSIxMzUiIHJ4PSI0IiByeT0iMi41IiBmaWxsPSIjNTU1Ii8+PGVsbGlwc2UgY3g9IjIxMCIgY3k9IjEzNSIgcng9IjQiIHJ5PSIyLjUiIGZpbGw9IiM1NTUiLz4KICA8cGF0aCBkPSJNMTk4IDEzOCBMMjAwIDE0OCBMMjAyIDEzOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5OCAxNTAgUTE5NiAxNTggMTkzIDE2OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjgiLz4KICA8cGF0aCBkPSJNMjAwIDE1MiBRMjAwIDE2NSAyMDAgMTc1IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NTUiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuOCIvPgogIDxwYXRoIGQ9Ik0yMDIgMTUwIFEyMDQgMTU4IDIwNyAxNjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44Ii8+CiAgPHBhdGggZD0iTTE5MiAxNDggUTIwMCAxNTIgMjA4IDE0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE4MCAyODAgUTE5NSAyOTAgMjAwIDI4MCBRMjA1IDI5MCAyMjAgMjgwIiBmaWxsPSJub25lIiBzdHJva2U9IiM1NTUiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjMiLz4KICA8cGF0aCBkPSJNMTc1IDM0MCBRMTkwIDM1MCAyMDAgMzQwIFEyMTAgMzUwIDIyNSAzNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NSIgc3Ryb2tlLXdpZHRoPSIwLjgiIG9wYWNpdHk9IjAuMyIvPgogIDxyZWN0IHg9IjI1OCIgeT0iMzgwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIzIiBmaWxsPSJub25lIiBzdHJva2U9IiNjMjNiMjIiIHN0cm9rZS13aWR0aD0iMS41IiBvcGFjaXR5PSIwLjciLz4KICA8dGV4dCB4PSIyNzgiIHk9IjQwMCIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjYzIzYjIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBvcGFjaXR5PSIwLjgiPuWtlOWtkDwvdGV4dD4KICA8dGV4dCB4PSIyNzgiIHk9IjQxMyIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiNjMjNiMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIG9wYWNpdHk9IjAuNiI+6KGM5pWZPC90ZXh0Pgo8L3N2Zz4=", "mengzi": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNTAwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnMiIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZDRlOGQ0IiBzdG9wLW9wYWNpdHk9IjAuMTIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZDRlOGQ0IiBzdG9wLW9wYWNpdHk9IjAuMDMiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJvYmUyIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMxZTI4MjAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGQwZDBkIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSIyNTAiIHI9IjE5MCIgZmlsbD0idXJsKCNiZzIpIiBzdHJva2U9IiMyRTZCMkUiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMyIvPgogIDxwYXRoIGQ9Ik0xNTggMTc1IFExNTAgMjA1IDE0NSAyNzAgUTE0MCAzNDAgMTM2IDQxMCBRMTM0IDQyNSAxNDIgNDMwIEwyNTggNDMwIFEyNjYgNDI1IDI2NCA0MTAgUTI2MCAzNDAgMjU1IDI3MCBRMjUwIDIwNSAyNDIgMTc1IFoiIGZpbGw9InVybCgjcm9iZTIpIiBvcGFjaXR5PSIwLjkiLz4KICA8cGF0aCBkPSJNMTY4IDE4NSBMMjAwIDI3NSBMMjMyIDE4NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkU2QjJFIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLW9wYWNpdHk9IjAuMzUiLz4KICA8cGF0aCBkPSJNMjAwIDI3NSBMMjAwIDQyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkU2QjJFIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1vcGFjaXR5PSIwLjE1Ii8+CiAgPHJlY3QgeD0iMTYwIiB5PSIyMzUiIHdpZHRoPSI4MCIgaGVpZ2h0PSI3IiByeD0iMiIgZmlsbD0iIzJFNkIyRSIgb3BhY2l0eT0iMC40Ii8+CiAgPHJlY3QgeD0iMTk1IiB5PSIyMzMiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMSIgcng9IjIiIGZpbGw9IiNjOWE5NmUiIG9wYWNpdHk9IjAuNSIvPgogIDxwYXRoIGQ9Ik0yNDIgMTgwIFEyNjggMTYwIDI4MCAxNDAgUTI4NiAxMzAgMjgyIDEyNSBRMjc4IDEyMiAyNzIgMTI4IFEyNTggMTQ1IDI0OCAxNzAgWiIgZmlsbD0iIzFlMjgyMCIgb3BhY2l0eT0iMC43NSIvPgogIDxlbGxpcHNlIGN4PSIyNzYiIGN5PSIxMzAiIHJ4PSIxMiIgcnk9IjciIGZpbGw9IiMyYTI1MjAiIHRyYW5zZm9ybT0icm90YXRlKC0yMCAyNzYgMTMwKSIvPgogIDxwYXRoIGQ9Ik0xNTggMTgwIFExMzUgMjEwIDEzMCAyNzUgUTEyNyAzMjAgMTM1IDM1NSBRMTQ1IDM0NSAxNDggMzE4IFExNTIgMjgwIDE1OCAyNDAgWiIgZmlsbD0iIzFlMjgyMCIgb3BhY2l0eT0iMC42NSIvPgogIDxlbGxpcHNlIGN4PSIxNTAiIGN5PSIyNjAiIHJ4PSIxMiIgcnk9IjciIGZpbGw9IiMyYTI1MjAiLz4KICA8cmVjdCB4PSIxOTAiIHk9IjE1NSIgd2lkdGg9IjIwIiBoZWlnaHQ9IjIyIiByeD0iNSIgZmlsbD0iIzJhMjUyMCIvPgogIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIxMzYiIHJ4PSIzMCIgcnk9IjMzIiBmaWxsPSIjMmEyNTIwIi8+CiAgPHBhdGggZD0iTTE2NSAxMTAgUTE3MCA4MCAyMDAgNzQgUTIzMCA4MCAyMzUgMTEwIFEyMzggMTA1IFEyMzUgNzYgMjAwIDY4IFExNjUgNzYgMTYyIDEwNSBaIiBmaWxsPSIjMGQwZDBkIi8+CiAgPHBhdGggZD0iTTE3MCAxMDUgUTIwMCA5MCAyMzAgMTA1IiBmaWxsPSJub25lIiBzdHJva2U9IiNjOWE5NmUiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC41Ii8+CiAgPHBhdGggZD0iTTE3NiAxMjQgUTE4NCAxMTggMTk2IDEyMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDQ0IiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTIwNCAxMjEgUTIxNiAxMTggMjI0IDEyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNDQ0IiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGVsbGlwc2UgY3g9IjE4OCIgY3k9IjEzMiIgcng9IjQuNSIgcnk9IjMiIGZpbGw9IiM1NTUiLz48ZWxsaXBzZSBjeD0iMjEyIiBjeT0iMTMyIiByeD0iNC41IiByeT0iMyIgZmlsbD0iIzU1NSIvPgogIDxjaXJjbGUgY3g9IjE4OCIgY3k9IjEzMiIgcj0iMS41IiBmaWxsPSIjODg4Ii8+PGNpcmNsZSBjeD0iMjEyIiBjeT0iMTMyIiByPSIxLjUiIGZpbGw9IiM4ODgiLz4KICA8cGF0aCBkPSJNMTk4IDEzNSBMMjAwIDE0OCBMMjAyIDEzNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjEuMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5MCAxNDggUTIwMCAxNTQgMjEwIDE0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjEuMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5NiAxNTAgUTE5NCAxNTggMTk1IDE2NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjYiLz4KICA8cGF0aCBkPSJNMjAwIDE1MiBRMjAwIDE2MiAyMDAgMTY4IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NTUiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNiIvPgogIDxwYXRoIGQ9Ik0yMDQgMTUwIFEyMDYgMTU4IDIwNSAxNjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NSIgc3Ryb2tlLXdpZHRoPSIxLjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC42Ii8+CiAgPHBhdGggZD0iTTE3OCAyODUgUTE5NSAyOTUgMjAwIDI4NSBRMjA1IDI5NSAyMjIgMjg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NTUiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjI1Ii8+CiAgPHJlY3QgeD0iMjU4IiB5PSIzODAiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcng9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2MyM2IyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNyIvPgogIDx0ZXh0IHg9IjI3OCIgeT0iNDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiNjMjNiMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIG9wYWNpdHk9IjAuOCI+5a2f5a2QPC90ZXh0PgogIDx0ZXh0IHg9IjI3OCIgeT0iNDEzIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2MyM2IyMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgb3BhY2l0eT0iMC42Ij7orrrpgZM8L3RleHQ+Cjwvc3ZnPg==", "zhuangzi": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNTAwIiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUwMCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnMyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjYjBjOGQ4IiBzdG9wLW9wYWNpdHk9IjAuMTAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjYjBjOGQ4IiBzdG9wLW9wYWNpdHk9IjAuMDIiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InJvYmUzIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMxYTFlMjUiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGQwZDBkIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSIyNTAiIHI9IjE5MCIgZmlsbD0idXJsKCNiZzMpIiBzdHJva2U9IiM0QTZCOEEiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMyIvPgogIDxwYXRoIGQ9Ik0xNTUgMTcwIFExNDUgMjAwIDE0MCAyNjUgUTEzNSAzNDAgMTMyIDQxMCBRMTMwIDQyNSAxNDAgNDMwIEwyNjAgNDMwIFEyNzAgNDI1IDI2OCA0MTAgUTI2NSAzNDAgMjYwIDI2NSBRMjU1IDIwMCAyNDUgMTcwIFoiIGZpbGw9InVybCgjcm9iZTMpIiBvcGFjaXR5PSIwLjkiLz4KICA8cGF0aCBkPSJNMTY1IDE4MCBRMjAwIDI3MCAyMzUgMTgwIiBmaWxsPSJub25lIiBzdHJva2U9IiM0QTZCOEEiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2Utb3BhY2l0eT0iMC4zIi8+CiAgPHJlY3QgeD0iMTU4IiB5PSIyNTAiIHdpZHRoPSI4NCIgaGVpZ2h0PSI0IiByeD0iMSIgZmlsbD0iIzRBNkI4QSIgb3BhY2l0eT0iMC4zNSIvPgogIDxwYXRoIGQ9Ik0yMDAgMjU0IFExOTggMjgwIDE5NiAzMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzRBNkI4QSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1vcGFjaXR5PSIwLjMiLz4KICA8cGF0aCBkPSJNMjAwIDI1NCBRMjAyIDI4MCAyMDQgMzAwIiBmaWxsPSJub25lIiBzdHJva2U9IiM0QTZCOEEiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2Utb3BhY2l0eT0iMC4zIi8+CiAgPHBhdGggZD0iTTI0NSAxODUgUTI3NSAyMDAgMjkwIDI1MCBRMjk4IDI4MCAyOTUgMzEwIFEyOTAgMzMwIDI4MCAzNTAgUTI3MCAzMzUgMjY4IDMxMCBRMjY1IDI3NSAyNjAgMjQwIFEyNTUgMjEwIDI0NSAxOTAgWiIgZmlsbD0iIzFhMWUyNSIgb3BhY2l0eT0iMC43Ii8+CiAgPHBhdGggZD0iTTI5NSAzMTAgUTMwMCAzMjAgMjk4IDMyNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNEE2QjhBIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC4zIi8+CiAgPHBhdGggZD0iTTE1NSAxODUgUTEyNSAyMDAgMTEwIDI1MCBRMTAyIDI4MCAxMDUgMzEwIFExMTAgMzMwIDEyMCAzNTAgUTEzMCAzMzUgMTMyIDMxMCBRMTM1IDI3NSAxNDAgMjQwIFExNDUgMjEwIDE1NSAxOTAgWiIgZmlsbD0iIzFhMWUyNSIgb3BhY2l0eT0iMC43Ii8+CiAgPHJlY3QgeD0iMTg1IiB5PSIyNjAiIHdpZHRoPSIzMCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiMyYTI1MjAiIG9wYWNpdHk9IjAuNCIvPgogIDxyZWN0IHg9IjE5MiIgeT0iMTUyIiB3aWR0aD0iMTYiIGhlaWdodD0iMjIiIHJ4PSI1IiBmaWxsPSIjMmEyNTIwIi8+CiAgPGVsbGlwc2UgY3g9IjE5OCIgY3k9IjEzNSIgcng9IjI4IiByeT0iMzEiIGZpbGw9IiMyYTI1MjAiIHRyYW5zZm9ybT0icm90YXRlKC01IDE5OCAxMzUpIi8+CiAgPHBhdGggZD0iTTE3MCAxMTIgUTE3NSA4NSAxOTggODAgUTIyMSA4NSAyMjYgMTEyIiBmaWxsPSIjMGQwZDBkIi8+CiAgPHJlY3QgeD0iMTc4IiB5PSI4MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjEwIiByeD0iMiIgZmlsbD0iIzBkMGQwZCIgdHJhbnNmb3JtPSJyb3RhdGUoLTUgMTk4IDg1KSIvPgogIDxwYXRoIGQ9Ik0xOTUgODAgUTE4OCA2MiAxODUgNTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzBkMGQwZCIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC42Ii8+CiAgPHBhdGggZD0iTTIwMSA4MCBRMjA4IDYyIDIxMCA1NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMGQwZDBkIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBvcGFjaXR5PSIwLjYiLz4KICA8cGF0aCBkPSJNMTc3IDEyNiBRMTg1IDEyMiAxOTQgMTI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8cGF0aCBkPSJNMjAzIDEyNCBRMjEyIDEyMiAyMjAgMTI2IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8ZWxsaXBzZSBjeD0iMTg4IiBjeT0iMTMyIiByeD0iNCIgcnk9IjIiIGZpbGw9IiM1NTUiLz48ZWxsaXBzZSBjeD0iMjEwIiBjeT0iMTMyIiByeD0iNCIgcnk9IjIiIGZpbGw9IiM1NTUiLz4KICA8cGF0aCBkPSJNMTg0IDEzMSBRMTg4IDEyOSAxOTIgMTMxIiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMS4yIi8+PHBhdGggZD0iTTIwNiAxMzEgUTIxMCAxMjkgMjE0IDEzMSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEuMiIvPgogIDxwYXRoIGQ9Ik0xOTcgMTM0IEwxOTkgMTQ1IEwyMDEgMTM0IiBmaWxsPSJub25lIiBzdHJva2U9IiM2NjYiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTE5MiAxNDUgUTE5OCAxNDkgMjA2IDE0NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjY2IiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0xOTggMTQ4IFExOTYgMTU1IDE5NCAxNjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNSIvPgogIDxwYXRoIGQ9Ik0yMDAgMTQ4IFEyMDAgMTU4IDIwMCAxNjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzU1NSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuNSIvPgogIDxwYXRoIGQ9Ik0xNzUgMzAwIFExOTUgMzEyIDIwMCAzMDAgUTIwNSAzMTIgMjI1IDMwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjAuNyIgb3BhY2l0eT0iMC4yNSIvPgogIDxwYXRoIGQ9Ik0xNzAgMzYwIFExOTAgMzcyIDIwMCAzNjAgUTIxMCAzNzIgMjMwIDM2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNTU1IiBzdHJva2Utd2lkdGg9IjAuNyIgb3BhY2l0eT0iMC4yNSIvPgogIDxwYXRoIGQ9Ik0zMTAgNDIwIFEzMTUgNDE1IDMxOCA0MjAgUTMxNSA0MTggMzEwIDQyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNEE2QjhBIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuNCIvPgogIDxwYXRoIGQ9Ik0zMTUgNDIwIFEzMjAgNDEyIDMyNSA0MTUgUTMyMiA0MTggMzE1IDQyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNEE2QjhBIiBzdHJva2Utd2lkdGg9IjEiIG9wYWNpdHk9IjAuNCIvPgogIDxyZWN0IHg9IjI1OCIgeT0iMzc1IiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHJ4PSIzIiBmaWxsPSJub25lIiBzdHJva2U9IiNjMjNiMjIiIHN0cm9rZS13aWR0aD0iMS41IiBvcGFjaXR5PSIwLjciLz4KICA8dGV4dCB4PSIyNzgiIHk9IjM5NSIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjEyIiBmaWxsPSIjYzIzYjIyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBvcGFjaXR5PSIwLjgiPuW6hOWtkDwvdGV4dD4KICA8dGV4dCB4PSIyNzgiIHk9IjQwOCIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjgiIGZpbGw9IiNjMjNiMjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIG9wYWNpdHk9IjAuNiI+6YCN6YGlPC90ZXh0Pgo8L3N2Zz4="};
+
+var DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+
+// ============================================================
+// 状态
+// ============================================================
+var API_KEY = function() { return localStorage.getItem('deepseek_api_key') || ''; };
+var currentPhilosopher = null;
+var messageHistory = [];
+
+// ============================================================
+// 页面切换
+// ============================================================
+function showPage(id) {
+    document.querySelectorAll('#login-page, #select-page, #chat-page').forEach(function(p) { p.style.display = 'none'; });
+    document.getElementById(id).style.display = 'flex';
+    if (id === 'select-page' || id === 'login-page') {
+        document.getElementById('chat-page').style.display = 'none';
+    }
+}
+
+function enter() {
+    var key = document.getElementById('api-key-input').value.trim();
+    if (!key) { alert('请输入 API Key'); return; }
+    localStorage.setItem('deepseek_api_key', key);
+    loadPhilosophers();
+}
+
+function backToSelect() {
+    stopSpeaking();
+    showPage('select-page');
+    currentPhilosopher = null;
+    messageHistory = [];
+}
+
+// ============================================================
+// 加载哲学家列表
+// ============================================================
+function loadPhilosophers() {
+    var container = document.getElementById('philosopher-list');
+    container.innerHTML = '';
+    Object.keys(PHILOSOPHERS).forEach(function(id) {
+        var ph = PHILOSOPHERS[id];
+        var card = document.createElement('div');
+        card.className = 'ph-card';
+        card.style.setProperty('--ph-color', ph.color || '#e94560');
+        card.innerHTML =
+            '<div class="ph-char" style="color:' + ph.color + '">' + ph.emoji + '</div>' +
+            '<div class="name">' + ph.name + '</div>' +
+            '<div class="title">' + ph.title + '</div>' +
+            '<div class="era">' + ph.era + '</div>';
+        card.onclick = function() { startChat(id); };
+        container.appendChild(card);
+    });
+    showPage('select-page');
+}
+
+// ============================================================
+// 开始聊天
+// ============================================================
+function startChat(philosopherId) {
+    currentPhilosopher = philosopherId;
+    var ph = PHILOSOPHERS[philosopherId];
+
+    // 更新头像区
+    var pi = document.getElementById('portrait-img');
+    var pc = document.getElementById('portrait-char');
+    var portraitUri = PORTRAIT_URIS[philosopherId];
+    if (portraitUri) {
+        pi.src = portraitUri;
+        pi.style.display = 'block';
+        pc.style.display = 'none';
+    } else {
+        pi.style.display = 'none';
+        pc.style.display = 'block';
+        pc.textContent = ph.emoji;
+    }
+    document.getElementById('portrait-name').textContent = ph.name;
+    document.getElementById('portrait-title').textContent = ph.title;
+    document.getElementById('portrait-era').textContent = ph.era;
+    var pf = document.getElementById('portrait-frame');
+    pf.style.borderColor = ph.color || '#c9a96e';
+    pf.style.removeProperty('box-shadow');
+
+    // 更新顶部栏
+    document.getElementById('chat-mini-char').textContent = ph.emoji;
+    document.getElementById('chat-mini-name').textContent = ph.name;
+    document.getElementById('chat-mini-extra').textContent = ph.era + ' · ' + ph.title.split('·')[0].trim();
+
+    // 配色
+    document.getElementById('chat-page').style.setProperty('--ph-color', ph.color || '#c9a96e');
+
+    // 重置消息历史
+    messageHistory = [
+        { role: "system", content: ph.system_prompt },
+        { role: "assistant", content: "在下" + ph.name + "。你有什么想问我的吗？" }
+    ];
+
+    var container = document.getElementById('messages');
+    container.innerHTML =
+        '<div class="msg system">═══ 与 ' + ph.name + ' 对话 ═══</div>' +
+        '<div class="msg bot">在下' + ph.name + '。你有什么想问我的吗？</div>';
+
+    document.getElementById('msg-input').value = '';
+    document.getElementById('msg-input').focus();
+    showPage('chat-page');
+}
+
+// ============================================================
+// 语音播报
+// ============================================================
+var currentUtterance = null;
+var currentSpeakBtn = null;
+
+function speak(text, button) {
+    if (currentSpeakBtn === button && speechSynthesis.speaking) {
+        if (speechSynthesis.paused) {
+            speechSynthesis.resume();
+            button.classList.add('speaking');
+        } else {
+            speechSynthesis.pause();
+            button.classList.remove('speaking');
+        }
+        return;
+    }
+    stopSpeaking();
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    var voices = speechSynthesis.getVoices();
+    var zhVoice = voices.find(function(v) { return v.lang.includes('zh'); });
+    if (zhVoice) utterance.voice = zhVoice;
+
+    utterance.onstart = function() {
+        if (button) button.classList.add('speaking');
+        var pf = document.getElementById('portrait-frame');
+        if (pf) pf.classList.add('speaking');
+    };
+    utterance.onend = function() {
+        if (button) button.classList.remove('speaking');
+        var pf = document.getElementById('portrait-frame');
+        if (pf) pf.classList.remove('speaking');
+        currentUtterance = null;
+        currentSpeakBtn = null;
+    };
+    utterance.onerror = function() {
+        if (button) button.classList.remove('speaking');
+        var pf = document.getElementById('portrait-frame');
+        if (pf) pf.classList.remove('speaking');
+        currentUtterance = null;
+        currentSpeakBtn = null;
+    };
+    currentUtterance = utterance;
+    currentSpeakBtn = button;
+    speechSynthesis.speak(utterance);
+}
+
+function stopSpeaking() {
+    speechSynthesis.cancel();
+    if (currentSpeakBtn) { currentSpeakBtn.classList.remove('speaking'); }
+    var pf = document.getElementById('portrait-frame');
+    if (pf) pf.classList.remove('speaking');
+    currentUtterance = null;
+    currentSpeakBtn = null;
+}
+
+if (speechSynthesis) {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = function() { speechSynthesis.getVoices(); };
+}
+
+// ============================================================
+// 发送消息（直接调用 DeepSeek API）
+// ============================================================
+function send() {
+    var input = document.getElementById('msg-input');
+    var text = input.value.trim();
+    if (!text || !currentPhilosopher) return;
+    input.value = '';
+
+    var container = document.getElementById('messages');
+
+    // 显示用户消息
+    container.insertAdjacentHTML('beforeend', '<div class="msg user">' + escapeHtml(text) + '</div>');
+    container.scrollTop = container.scrollHeight;
+
+    // 打字指示器
+    var typing = document.createElement('div');
+    typing.className = 'typing-indicator';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    container.appendChild(typing);
+    container.scrollTop = container.scrollHeight;
+
+    // 更新消息历史
+    messageHistory.push({ role: "user", content: text });
+
+    // 直接调 DeepSeek API
+    fetch(DEEPSEEK_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + API_KEY()
+        },
+        body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: messageHistory,
+            temperature: 0.7,
+            max_tokens: 1024,
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        typing.remove();
+        if (data.error) {
+            container.insertAdjacentHTML('beforeend', '<div class="error-msg">⚠️ ' + escapeHtml(data.error.message || data.error) + '</div>');
+            messageHistory.pop();
+        } else {
+            var reply = data.choices[0].message.content;
+            messageHistory.push({ role: "assistant", content: reply });
+            var ph = PHILOSOPHERS[currentPhilosopher];
+            var msgDiv = document.createElement('div');
+            msgDiv.className = 'msg bot';
+            var escapedReply = escapeHtml(reply);
+            msgDiv.innerHTML = '<span class="msg-content">' + escapedReply + '</span> <button class="speak-btn" title="朗读">🔊</button>';
+            msgDiv.querySelector('.speak-btn').onclick = function() { speak(reply, this); };
+            container.appendChild(msgDiv);
+            if (document.getElementById('auto-speak-toggle').checked) {
+                var btn = msgDiv.querySelector('.speak-btn');
+                speak(reply, btn);
+            }
+        }
+        container.scrollTop = container.scrollHeight;
+    })
+    .catch(function(err) {
+        typing.remove();
+        container.insertAdjacentHTML('beforeend', '<div class="error-msg">⚠️ 网络错误：' + escapeHtml(err.message) + '</div>');
+        messageHistory.pop();
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ============================================================
+// 检查是否已有 API Key
+// ============================================================
+(function() {
+    var saved = localStorage.getItem('deepseek_api_key');
+    if (saved) {
+        document.getElementById('api-key-input').value = saved;
+        loadPhilosophers();
+    }
+})();
+
+</script>
+</body>
+</html>
