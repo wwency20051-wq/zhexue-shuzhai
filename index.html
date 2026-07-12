@@ -585,6 +585,39 @@ function clearNightDraft() {
     localStorage.removeItem('zhexue_night_draft');
 }
 
+/* 对话历史持久化：自由对话也保存 */
+function saveChatHistory() {
+    if (!currentPhilosopher || !messageHistory.length) return;
+    try {
+        var key = 'zhexue_chat_' + currentPhilosopher;
+        var data = {
+            history: messageHistory.slice(0, 100), // 最多100条，防撑爆
+            timestamp: Date.now(),
+        };
+        localStorage.setItem(key, JSON.stringify(data));
+    } catch(e) {
+        // localStorage 存满了就静默失败
+    }
+}
+
+function getChatHistory(phId) {
+    try {
+        var raw = localStorage.getItem('zhexue_chat_' + phId);
+        if (!raw) return null;
+        var data = JSON.parse(raw);
+        // 超过7天自动过期
+        if (Date.now() - (data.timestamp || 0) > 7 * 86400000) {
+            localStorage.removeItem('zhexue_chat_' + phId);
+            return null;
+        }
+        return data.history || null;
+    } catch(e) { return null; }
+}
+
+function clearChatHistory(phId) {
+    localStorage.removeItem('zhexue_chat_' + phId);
+}
+
 function applyNightDraft(draft) {
     _nightPhilosophers = draft.philosophers || [];
     _chatMode = draft.chatMode || 'user';
@@ -795,6 +828,8 @@ function switchUser() {
 
 function backToSelect() {
     stopSpeaking();
+    // 退出时保存当前对话历史
+    saveChatHistory();
     showPage('select-page');
     currentPhilosopher = null;
     messageHistory = [];
@@ -850,7 +885,55 @@ function loadPhilosophers() {
 function startFreeChat(phId) {
     isReviewMode = false;
     currentReviewPhId = null;
+    var saved = getChatHistory(phId);
+    if (saved && saved.length >= 2) {
+        var ph = PHILOSOPHERS[phId];
+        var name = ph ? ph.name : '此先哲';
+        var msgCount = Math.floor(saved.filter(function(m) { return m.role === 'user'; }).length);
+        if (confirm('继续上次与「' + name + '」的对话？（共' + msgCount + '轮）\n\n「确定」继续 ／ 「取消」新对话')) {
+            applyChatHistory(phId, saved);
+            return;
+        } else {
+            clearChatHistory(phId);
+        }
+    }
     enterChat(phId, 'free');
+}
+
+function applyChatHistory(phId, saved) {
+    currentPhilosopher = phId;
+    messageHistory = saved;
+    var ph = PHILOSOPHERS[phId];
+    if (!ph) { backToSelect(); return; }
+    // 恢复 UI
+    var pi = document.getElementById('portrait-img');
+    var pc = document.getElementById('portrait-char');
+    var uri = PORTRAIT_URIS[phId];
+    if (uri) { pi.src = uri; pi.style.display = 'block'; pc.style.display = 'none'; }
+    else { pi.style.display = 'none'; pc.style.display = 'block'; pc.textContent = ph.emoji; }
+    document.getElementById('portrait-name').textContent = ph.name;
+    document.getElementById('portrait-title').textContent = ph.title;
+    document.getElementById('portrait-era').textContent = ph.era;
+    document.getElementById('portrait-frame').style.borderColor = ph.color || '#c9a96e';
+    document.getElementById('chat-mini-char').textContent = ph.emoji;
+    document.getElementById('chat-mini-name').textContent = ph.name;
+    document.getElementById('chat-mini-extra').textContent = ph.era + ' · ' + (ph.title.split('·')[0] || '').trim();
+    document.getElementById('chat-page').style.setProperty('--ph-color', ph.color || '#c9a96e');
+    document.getElementById('mode-badge').textContent = '🗣 自由对话';
+    document.getElementById('mode-badge').style.borderColor = '#8ec89e';
+    // 渲染历史消息
+    var container = document.getElementById('messages');
+    container.innerHTML = '';
+    messageHistory.forEach(function(m) {
+        if (m.role === 'system') return;
+        var div = document.createElement('div');
+        div.className = 'msg ' + (m.role === 'user' ? 'user' : 'bot');
+        div.innerHTML = '<span class="msg-content">' + escapeHtml(m.content) + '</span>';
+        container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
+    showPage('chat-page');
+    setTimeout(function() { document.getElementById('msg-input').focus(); }, 300);
 }
 
 /* 复习系统 */
@@ -1080,9 +1163,10 @@ function send() {
                 var bots = messageHistory.filter(function(m) { return m.role === 'assistant'; });
                 if (bots.length >= 4) setTimeout(function() { showReviewDialog(); }, 1000);
             }
-            // 夜聊自动存草稿（每5条用户消息）
+            // 自动保存对话历史（每5条用户消息）
             if (!isReviewMode && messageHistory.length > 1 && messageHistory.filter(function(m) { return m.role === 'user'; }).length % 5 === 0) {
                 saveNightDraft();
+                saveChatHistory();
             }
         }
         container.scrollTop = container.scrollHeight;
