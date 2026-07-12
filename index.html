@@ -1196,7 +1196,7 @@ function initSpeechRecognition() {
             micBtn.classList.add('unsupported');
             micBtn.innerHTML = '🎤<span class="hint-tip">此浏览器不支持<br>用键盘麦克风输入</span>';
         }
-        micBtn.title = '浏览器不支持语音识别，请用键盘自带的语音输入';
+        if (micBtn) micBtn.title = '浏览器不支持语音识别，请用键盘自带的语音输入';
         return;
     }
     recognition = new SR();
