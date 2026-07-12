@@ -7,7 +7,6 @@
 <meta name="description" content="与33位先贤对话——你的随身中国哲学导师">
 <meta name="theme-color" content="#0d0d0d">
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
         --ink: #0d0d0d; --ink-light: #1a1817; --parchment: #2a2520;
@@ -16,7 +15,7 @@
         --vermillion-glow: rgba(194,59,34,0.3); --gold: #c9a96e; --gold-dim: #8a7a5a;
     }
     body {
-        font-family: "Noto Serif SC", "SimSun", "STSong", serif;
+        font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", "AR PL UMing CN", serif;
         background: var(--ink); color: var(--text-primary);
         height: 100vh; overflow: hidden;
         background-image:
@@ -618,7 +617,7 @@ function backToSelect() {
     currentReviewPhId = null;
 }
 
-/* 加载哲学家列表 */
+/* 加载哲学家列表（分批渲染，不阻塞UI） */
 function loadPhilosophers() {
     var container = document.getElementById('philosopher-list');
     container.innerHTML = '';
@@ -628,21 +627,29 @@ function loadPhilosophers() {
         var cb = co[PHILOSOPHERS[b].course] || 9;
         return ca !== cb ? ca - cb : PHILOSOPHERS[a].name.localeCompare(PHILOSOPHERS[b].name, 'zh');
     });
-    sorted.forEach(function(id) {
-        var ph = PHILOSOPHERS[id];
-        var card = document.createElement('div');
-        card.className = 'ph-card';
-        card.style.setProperty('--ph-color', ph.color || '#e94560');
-        var badge = ph.course ? '<div class="course-badge ' + ph.course + '">' + ph.course + '</div>' : '';
-        card.innerHTML = badge +
-            '<div class="ph-char" style="color:' + ph.color + '">' + ph.emoji + '</div>' +
-            '<div class="name">' + ph.name + '</div>' +
-            '<div class="title">' + ph.title + '</div>' +
-            '<div class="era">' + ph.era + '</div>';
-        card.onclick = function() { startFreeChat(id); };
-        container.appendChild(card);
-    });
     showPage('select-page');
+    // 分批渲染：每次12张，让UI线程有空隙
+    var i = 0, chunk = 12;
+    function renderNext() {
+        var end = Math.min(i + chunk, sorted.length);
+        for (; i < end; i++) {
+            var id = sorted[i];
+            var ph = PHILOSOPHERS[id];
+            var card = document.createElement('div');
+            card.className = 'ph-card';
+            card.style.setProperty('--ph-color', ph.color || '#e94560');
+            var badge = ph.course ? '<div class="course-badge ' + ph.course + '">' + ph.course + '</div>' : '';
+            card.innerHTML = badge +
+                '<div class="ph-char" style="color:' + ph.color + '">' + ph.emoji + '</div>' +
+                '<div class="name">' + ph.name + '</div>' +
+                '<div class="title">' + ph.title + '</div>' +
+                '<div class="era">' + ph.era + '</div>';
+            card.onclick = (function(pid) { return function() { startFreeChat(pid); }; })(id);
+            container.appendChild(card);
+        }
+        if (i < sorted.length) requestAnimationFrame(renderNext);
+    }
+    requestAnimationFrame(renderNext);
 }
 
 /* 自由对话 */
@@ -929,13 +936,12 @@ initSpeechRecognition();
     if (saved) {
         document.getElementById('api-key-input').value = saved;
         if (ghSaved) document.getElementById('gh-token-input').value = ghSaved;
-        // 如果有 GitHub Token，先从云端加载复习数据再进选择页
+        // 先显示页面，再异步同步云端数据（不阻塞渲染）
+        loadPhilosophers();
         if (ghSaved) {
             ghReadReviewState(function(state) {
-                loadPhilosophers();
+                // 静默合并云端数据到 localStorage，不阻塞 UI
             });
-        } else {
-            loadPhilosophers();
         }
     }
 })();
