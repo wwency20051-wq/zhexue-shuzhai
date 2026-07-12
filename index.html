@@ -532,8 +532,9 @@ function escapeHtml(str) {
 (function() {
     var saved = localStorage.getItem('deepseek_api_key');
     if (saved) {
+        // 已有 Key → 直接跳过登录页
         document.getElementById('api-key-input').value = saved;
-        loadPhilosophers();
+        enter();
     }
 })();
 
