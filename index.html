@@ -178,6 +178,46 @@
     .mode-badge.free { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
     .auto-speak-label { font-size: 0.72rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; cursor: pointer; }
     .auto-speak-label input { accent-color: var(--vermillion); }
+    .night-toggle { border: 1px solid var(--parchment-light); background: transparent; color: var(--text-secondary); padding: 6px 16px; border-radius: 2px; cursor: pointer; font-family: inherit; font-size: 0.78rem; transition: all 0.25s; }
+    .night-toggle:hover { border-color: var(--gold); color: var(--gold); }
+    .night-toggle.active { background: rgba(201,169,110,0.12); border-color: var(--gold); color: var(--gold); }
+    .night-controls { display: none; align-items: center; gap: 6px; }
+    .night-controls.show { display: flex; }
+    .night-controls .mode-label { font-size: 0.6rem; color: var(--text-secondary); letter-spacing: 1px; margin-right: 2px; }
+    .night-switch { display: flex; border: 1px solid var(--parchment-light); border-radius: 2px; overflow: hidden; }
+    .night-switch button { padding: 3px 10px; border: none; background: transparent; color: var(--text-secondary); font-size: 0.65rem; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .night-switch button.active { background: rgba(201,169,110,0.15); color: var(--gold); }
+    .night-switch button:first-child { border-right: 1px solid var(--parchment-light); }
+    .night-switch button:hover:not(.active) { background: rgba(255,255,255,0.03); }
+    .call-btn { padding: 3px 10px; border: 1px solid var(--parchment-light); border-radius: 2px; background: transparent; color: var(--text-secondary); font-size: 0.65rem; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .call-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .end-night-btn { display: none; padding: 6px 14px; border: 1px solid rgba(194,59,34,0.3); border-radius: 2px; background: transparent; color: var(--vermillion); font-size: 0.7rem; cursor: pointer; font-family: inherit; transition: all 0.25s; white-space: nowrap; }
+    .end-night-btn:hover { background: rgba(194,59,34,0.1); }
+    .end-night-btn.show { display: inline-flex; align-items: center; gap: 4px; }
+    .ph-picker-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+    .ph-picker-overlay.show { display: flex; }
+    .ph-picker { background: var(--ink-light); border: 1px solid var(--parchment-light); border-radius: 4px; max-width: 400px; width: 100%; max-height: 70vh; overflow-y: auto; padding: 20px; }
+    .ph-picker h3 { font-size: 0.9rem; letter-spacing: 2px; margin-bottom: 12px; color: var(--gold); }
+    .ph-picker .pick-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 2px; cursor: pointer; transition: background 0.2s; border: none; background: transparent; color: var(--text-primary); font-family: inherit; font-size: 0.85rem; width: 100%; text-align: left; }
+    .ph-picker .pick-item:hover { background: rgba(255,255,255,0.05); }
+    .ph-picker .pick-item .pick-emoji { font-size: 1.2rem; }
+    .ph-picker .pick-item .pick-name { font-weight: 600; }
+    .ph-picker .pick-item .pick-era { font-size: 0.7rem; color: var(--text-secondary); }
+    .ph-picker .close-picker { margin-top: 12px; padding: 6px 16px; border: 1px solid var(--parchment-light); border-radius: 2px; background: transparent; color: var(--text-secondary); cursor: pointer; font-family: inherit; font-size: 0.75rem; }
+    .summary-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+    .summary-overlay.show { display: flex; }
+    .summary-box { background: var(--ink-light); border: 1px solid var(--parchment-light); border-radius: 4px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 24px; }
+    .summary-box h3 { font-size: 1rem; letter-spacing: 2px; margin-bottom: 8px; }
+    .summary-box .summary-section { margin: 12px 0; }
+    .summary-box .summary-section .ss-label { font-size: 0.7rem; color: var(--gold); letter-spacing: 1px; margin-bottom: 4px; }
+    .summary-box .summary-section .ss-content { font-size: 0.85rem; line-height: 1.6; color: var(--text-primary); }
+    .summary-box .summary-section .ss-content.quote { color: var(--vermillion); font-style: italic; padding-left: 12px; border-left: 2px solid var(--vermillion); }
+    .summary-box .summary-section .ss-content.risk { color: #e8a040; }
+    .summary-box .ss-btn { margin-top: 16px; padding: 8px 24px; border: 1px solid var(--gold); border-radius: 2px; background: transparent; color: var(--gold); cursor: pointer; font-family: inherit; font-size: 0.8rem; }
+    .summary-box .ss-btn:hover { background: rgba(201,169,110,0.1); }
+    .summary-loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+    .summary-loading .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid var(--parchment-light); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     #messages {
         flex: 1; overflow-y: auto; padding: 20px;
@@ -287,8 +327,9 @@
         <span class="nav-spacer"></span>
         <a onclick="switchUser()" style="color:#555;">切换Key</a>
     </div>
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
         <button class="btn-small btn-gold" onclick="showReview()">📖 今日复习</button>
+        <button class="night-toggle" id="night-toggle-btn" onclick="toggleNightMode()">🌙 夜聊</button>
     </div>
     <div class="select-title">择 一 位 先 哲</div>
     <div class="select-subtitle">自由对话 · 与任何哲学家深入讨论</div>
@@ -298,7 +339,7 @@
 <!-- 复习页 -->
 <div id="review-page">
     <div class="nav-bar">
-        <a onclick="showPage('select-page')">先哲</a>
+        <a onclick="loadPhilosophers()">先哲</a>
         <a class="active">📖 复习</a>
         <span class="nav-spacer"></span>
         <a onclick="switchUser()" style="color:#555;">切换Key</a>
@@ -308,7 +349,7 @@
             <h2>📖 温故而知新</h2>
             <div class="sub">艾宾浩斯遗忘曲线 · 7阶段复习</div>
         </div>
-        <button class="btn-small btn-gold" onclick="showPage('select-page')">← 返回</button>
+        <button class="btn-small btn-gold" onclick="loadPhilosophers()">← 返回</button>
     </div>
     <div class="review-stats" id="review-stats">
         <div class="stat-item"><div class="num" id="r-due">0</div><div class="label">今日到期</div></div>
@@ -347,6 +388,15 @@
                     </div>
                 </div>
                 <span class="mode-badge free" id="mode-badge">🗣 自由对话</span>
+                <div class="night-controls" id="night-controls">
+                    <span class="mode-label">模式</span>
+                    <div class="night-switch">
+                        <button class="active" id="mode-user-led" onclick="setNightMode('user')">你主导</button>
+                        <button id="mode-ai-led" onclick="setNightMode('ai')">AI主导</button>
+                    </div>
+                    <button class="call-btn" onclick="showPhilosopherPicker()">叫ta来</button>
+                </div>
+                <button class="end-night-btn" id="end-night-btn" onclick="endNightChat()">🌙 结束夜聊</button>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <label class="auto-speak-label"><input type="checkbox" id="auto-speak-toggle"> 朗读</label>
                     <span class="mode-badge free" style="font-size:0.6rem;">DeepSeek</span>
@@ -371,6 +421,29 @@
             <button class="btn-option remembered" onclick="submitReview('remembered')">✅ 记住了</button>
             <button class="btn-option blurred" onclick="submitReview('blurred')">🤔 有点模糊</button>
             <button class="btn-option forgot" onclick="submitReview('forgot')">❌ 忘了</button>
+        </div>
+    </div>
+</div>
+
+<!-- 哲学家选择器（夜聊-叫ta来） -->
+<div class="ph-picker-overlay" id="ph-picker-overlay">
+    <div class="ph-picker">
+        <h3>🌙 叫哪位先哲过来？</h3>
+        <div id="ph-picker-list"></div>
+        <div style="text-align:center;margin-top:8px;">
+            <button class="close-picker" onclick="closePhilosopherPicker()">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 夜聊总结弹窗 -->
+<div class="summary-overlay" id="summary-overlay">
+    <div class="summary-box" id="summary-box">
+        <div id="summary-content">
+            <div class="summary-loading">
+                <div class="spinner"></div>
+                <div>分析夜聊内容…</div>
+            </div>
         </div>
     </div>
 </div>
@@ -456,6 +529,10 @@ var currentPhilosopher = null;
 var messageHistory = [];
 var isReviewMode = false;
 var currentReviewPhId = null;
+var _nightMode = false;
+var _chatMode = 'user';
+var _nightPhilosophers = [];
+var _isEnding = false;
 
 /* ============================================================
    艾宾浩斯复习引擎（localStorage 版，纯前端可用）
@@ -586,7 +663,6 @@ function showPage(id) {
         p.style.display = 'none';
     });
     document.getElementById(id).style.display = id === 'chat-page' ? '' : 'flex';
-    if (id === 'select-page') loadPhilosophers();
     if (id === 'review-page') loadReviewDashboard();
 }
 
@@ -643,7 +719,7 @@ function loadPhilosophers() {
                 '<div class="name">' + ph.name + '</div>' +
                 '<div class="title">' + ph.title + '</div>' +
                 '<div class="era">' + ph.era + '</div>';
-            card.onclick = (function(pid) { return function() { startFreeChat(pid); }; })(id);
+            card.onclick = (function(pid) { return function() { if (_nightMode) startNightChat(pid); else startFreeChat(pid); }; })(id);
             container.appendChild(card);
         }
         if (i < sorted.length) requestAnimationFrame(renderBatch);
@@ -743,10 +819,32 @@ function enterChat(phId, mode) {
             var opening = "我们来复习关于我的核心内容。你先说说——你觉得我最重要的思想是什么？";
             messageHistory.push({ role: "assistant", content: opening });
             container.innerHTML = '<div class="msg system">═══ 复习模式 · ' + ph.name + ' ═══</div><div class="msg bot">' + escapeHtml(opening) + '</div>';
+        } else if (mode === 'night') {
+            modeBadge.textContent = '🌙 夜聊';
+            modeBadge.className = 'mode-badge free';
+            modeBadge.style.borderColor = 'var(--gold)';
+            modeBadge.style.color = 'var(--gold)';
+            reviewBadge.style.display = 'none';
+            document.getElementById('night-controls').classList.add('show');
+            document.getElementById('end-night-btn').classList.add('show');
+            document.getElementById('mode-user-led').classList.add('active');
+            document.getElementById('mode-ai-led').classList.remove('active');
+            _chatMode = 'user';
+            _nightPhilosophers = [phId];
+            var nightPrompt = systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围（推测、类比、跨域连接），必须在结尾用 ⚠️ 标注，并说明"这个教材没写，是我根据逻辑推的"\n2. 如果学生让你主导对话，主动出题问他\n3. 保持对话深度，鼓励学生做跨域连接';
+            messageHistory = [
+                { role: "system", content: nightPrompt },
+                { role: "assistant", content: "🌙 在下" + ph.name + "。今晚想聊什么？" }
+            ];
+            container.innerHTML = '<div class="msg system">🌙 夜聊 · ' + ph.name + '</div><div class="msg bot">🌙 在下' + ph.name + '。今晚想聊什么？</div>';
         } else {
             modeBadge.textContent = '🗣 自由对话';
             modeBadge.className = 'mode-badge free';
+            modeBadge.style.borderColor = '';
+            modeBadge.style.color = '';
             reviewBadge.style.display = 'none';
+            document.getElementById('night-controls').classList.remove('show');
+            document.getElementById('end-night-btn').classList.remove('show');
             messageHistory = [
                 { role: "system", content: systemPrompt },
                 { role: "assistant", content: "在下" + ph.name + "。你有什么想问我的吗？" }
@@ -851,6 +949,240 @@ function stopSpeaking() {
 if (speechSynthesis) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = function() { speechSynthesis.getVoices(); }; }
 
 function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+/* ============================================================
+   夜聊模式
+   ============================================================ */
+function toggleNightMode() {
+    _nightMode = !_nightMode;
+    document.getElementById('night-toggle-btn').classList.toggle('active', _nightMode);
+    document.querySelector('.select-subtitle').textContent = _nightMode
+        ? '🌙 选中一位先哲，开始夜聊'
+        : '自由对话 · 与任何哲学家深入讨论';
+}
+
+function startNightChat(phId) {
+    _nightMode = false;
+    document.getElementById('night-toggle-btn').classList.remove('active');
+    isReviewMode = false;
+    currentReviewPhId = null;
+    enterChat(phId, 'night');
+}
+
+function setNightMode(mode) {
+    _chatMode = mode;
+    document.getElementById('mode-user-led').classList.toggle('active', mode === 'user');
+    document.getElementById('mode-ai-led').classList.toggle('active', mode === 'ai');
+    if (mode === 'ai' && messageHistory.length > 0) {
+        // 追加一条 AI-led 指令最近的 AI 回复之后
+        var lastMsg = messageHistory[messageHistory.length - 1];
+        if (lastMsg.role === 'assistant') {
+            // 已经在 AI 主导模式或 AI 刚说完，不用触发
+            return;
+        }
+        // 用户刚说完，切 AI 主导 → 让 AI 主动出题
+        var followPrompt = { role: "system", content: "现在切换到AI主导模式。请你围绕你的核心思想，向学生提出一个有深度的问题让他回答。一次只提一个问题。" };
+        // 临时注入指令作为最后一条 user 消息（实际上不显示）
+        // 用 system message 在 context 末尾更干净
+        messageHistory.push({ role: "user", content: "[请切换到AI主导模式，主动向我提问]" });
+        var input = document.getElementById('msg-input');
+        var container = document.getElementById('messages');
+        var typing = document.createElement('div');
+        typing.className = 'typing-indicator';
+        typing.innerHTML = '<span></span><span></span><span></span>';
+        container.appendChild(typing);
+        container.scrollTop = container.scrollHeight;
+        fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY() },
+            body: JSON.stringify({ model: 'deepseek-chat', messages: messageHistory, temperature: 0.7, max_tokens: 1024 })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            typing.remove();
+            if (!data.error) {
+                var reply = data.choices[0].message.content;
+                messageHistory.push({ role: "assistant", content: reply });
+                var md = document.createElement('div');
+                md.className = 'msg bot';
+                md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>';
+                container.appendChild(md);
+                container.scrollTop = container.scrollHeight;
+            }
+        }).catch(function() { typing.remove(); });
+    }
+}
+
+function showPhilosopherPicker() {
+    var list = document.getElementById('ph-picker-list');
+    list.innerHTML = '';
+    var sorted = Object.keys(PHILOSOPHERS).sort(function(a, b) {
+        var co = {'中哲':0, '西哲':1, '马哲':2};
+        var ca = co[PHILOSOPHERS[a].course] || 9;
+        var cb = co[PHILOSOPHERS[b].course] || 9;
+        return ca !== cb ? ca - cb : PHILOSOPHERS[a].name.localeCompare(PHILOSOPHERS[b].name, 'zh');
+    });
+    sorted.forEach(function(id) {
+        var ph = PHILOSOPHERS[id];
+        if (id === currentPhilosopher) return; // 不能叫自己
+        var item = document.createElement('button');
+        item.className = 'pick-item';
+        item.innerHTML = '<span class="pick-emoji">' + ph.emoji + '</span><div><div class="pick-name">' + ph.name + '</div><div class="pick-era">' + ph.title + ' · ' + ph.era + '</div></div>';
+        item.onclick = function() { switchToPhilosopher(id); };
+        list.appendChild(item);
+    });
+    document.getElementById('ph-picker-overlay').classList.add('show');
+}
+
+function closePhilosopherPicker() {
+    document.getElementById('ph-picker-overlay').classList.remove('show');
+}
+
+function switchToPhilosopher(phId) {
+    closePhilosopherPicker();
+    var ph = PHILOSOPHERS[phId];
+    if (!ph || phId === currentPhilosopher) return;
+    var oldPh = PHILOSOPHERS[currentPhilosopher];
+    var oldName = oldPh ? oldPh.name : '先哲';
+
+    // 收集上下文摘要（最后一条用户消息 + 最后一条 AI 消息）
+    var lastUserMsg = '', lastAiMsg = '';
+    for (var i = messageHistory.length - 1; i >= 0; i--) {
+        if (!lastAiMsg && messageHistory[i].role === 'assistant' && messageHistory[i].content.indexOf('【夜聊模式】') === -1 && messageHistory[i].content.indexOf('【上下文】') === -1) {
+            lastAiMsg = messageHistory[i].content.substring(0, 300);
+        }
+        if (!lastUserMsg && messageHistory[i].role === 'user' && messageHistory[i].content.indexOf('[请切换到') === -1) {
+            lastUserMsg = messageHistory[i].content.substring(0, 200);
+        }
+        if (lastUserMsg && lastAiMsg) break;
+    }
+    if (!lastUserMsg) lastUserMsg = '（学生正在思考）';
+
+    // 更新当前哲学家
+    currentPhilosopher = phId;
+    if (_nightPhilosophers.indexOf(phId) === -1) _nightPhilosophers.push(phId);
+
+    // 更新头像
+    var pi = document.getElementById('portrait-img');
+    var pc = document.getElementById('portrait-char');
+    var uri = PORTRAIT_URIS[phId];
+    if (uri) { pi.src = uri; pi.style.display = 'block'; pc.style.display = 'none'; }
+    else { pi.style.display = 'none'; pc.style.display = 'block'; pc.textContent = ph.emoji; }
+    document.getElementById('portrait-name').textContent = ph.name;
+    document.getElementById('portrait-title').textContent = ph.title;
+    document.getElementById('portrait-era').textContent = ph.era;
+    document.getElementById('portrait-frame').style.borderColor = ph.color || '#c9a96e';
+    document.getElementById('chat-mini-char').textContent = ph.emoji;
+    document.getElementById('chat-mini-name').textContent = ph.name;
+    document.getElementById('chat-mini-extra').textContent = ph.era + ' · ' + (ph.title.split('·')[0] || '').trim();
+    document.getElementById('chat-page').style.setProperty('--ph-color', ph.color || '#c9a96e');
+    document.getElementById('mode-badge').textContent = '🌙 夜聊';
+
+    var container = document.getElementById('messages');
+    container.insertAdjacentHTML('beforeend', '<div class="msg system">🌙 ' + oldName + ' → ' + ph.name + '</div>');
+
+    fetchSystemPrompt(phId).then(function(systemPrompt) {
+        var contextNote = '【上下文】\n你刚和' + oldName + '讨论了以下内容：\n学生问："' + lastUserMsg + '"\n' + oldName + '答："' + lastAiMsg + '"\n现在学生想听听你对同一问题的看法。\n\n';
+        var contextPrompt = contextNote + systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围，必须在结尾用 ⚠️ 标注\n2. 鼓励学生做跨域连接';
+        // 替换 system message
+        messageHistory = messageHistory.filter(function(m) { return m.role !== 'system'; });
+        var switchMsg = '🌙 ' + ph.name + '来接话了。关于刚才聊到的问题——' + lastUserMsg + '——你的看法是？';
+        messageHistory.unshift({ role: "system", content: contextPrompt });
+        messageHistory.push({ role: "assistant", content: switchMsg });
+        container.insertAdjacentHTML('beforeend', '<div class="msg bot">🌙 ' + escapeHtml(switchMsg) + '</div>');
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+function endNightChat() {
+    if (_isEnding) return;
+    _isEnding = true;
+
+    var overlay = document.getElementById('summary-overlay');
+    overlay.classList.add('show');
+    document.getElementById('summary-content').innerHTML = '<div class="summary-loading"><div class="spinner"></div><div>📝 分析夜聊内容…</div></div>';
+
+    // 收集对话（去掉 system 消息）
+    var chatMessages = messageHistory.filter(function(m) { return m.role !== 'system'; });
+    if (chatMessages.length < 2) {
+        showSummaryResult({ theme: '对话太短，无法分析', quotes: [], connections: [], risks: [], questions: [] });
+        return;
+    }
+
+    var chatText = chatMessages.map(function(m) {
+        return (m.role === 'user' ? '学生' : 'AI') + '：' + m.content;
+    }).join('\n\n');
+
+    var analysisPrompt = [
+        { role: "system", content: "你是一个哲学对话分析师。请分析以下对话，产出JSON格式的结构化摘要。只输出JSON，不要其他文字。" },
+        { role: "user", content: '分析以下哲学夜聊对话，输出JSON格式：\n{\n  "theme": "对话核心主题（一句话）",\n  "quotes": ["学生说出的最有价值的原话（最多3条）"],\n  "connections": ["学生主动做出的跨域连接（最多3条）"],\n  "risks": ["AI回答中可能超出教材的内容（如有）"],\n  "questions": ["对话中遗留或新产生的问题（最多3条）"]\n}\n\n对话内容：\n' + chatText }
+    ];
+
+    fetch(DEEPSEEK_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY() },
+        body: JSON.stringify({ model: 'deepseek-chat', messages: analysisPrompt, temperature: 0.3, max_tokens: 1024 })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.error) { showSummaryResult({ theme: '分析失败', quotes: [], connections: [], risks: [data.error.message], questions: [] }); return; }
+        var text = data.choices[0].message.content;
+        var result;
+        try {
+            // 尝试从 ```json ... ``` 中提取
+            var m = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (m) result = JSON.parse(m[1]);
+            else result = JSON.parse(text);
+        } catch(e) {
+            // fallback: 人工解析
+            result = { theme: text.substring(0, 200), quotes: [], connections: [], risks: [], questions: [] };
+        }
+        showSummaryResult(result);
+
+        // 保存到后端
+        var saveData = {
+            philosophers: _nightPhilosophers.map(function(id) { return { id: id, name: (PHILOSOPHERS[id] || {}).name || id }; }),
+            analysis: result,
+            messages: chatMessages.map(function(m) {
+                return { role: m.role, content: m.content.substring(0, 500) };
+            }),
+            date: new Date().toISOString().split('T')[0]
+        };
+        // 夜间对话保存（离线版不启用）
+    }).catch(function(err) {
+        showSummaryResult({ theme: '网络错误', quotes: [], connections: [], risks: [err.message], questions: [] });
+    });
+}
+
+function showSummaryResult(result) {
+    var html = '<h3>🌙 夜聊总结</h3>';
+    html += '<div class="summary-section"><div class="ss-label">🏷 主题</div><div class="ss-content">' + escapeHtml(result.theme || '未识别') + '</div></div>';
+    if (result.quotes && result.quotes.length) {
+        html += '<div class="summary-section"><div class="ss-label">💬 你的原话</div>';
+        result.quotes.forEach(function(q) { html += '<div class="ss-content quote">"' + escapeHtml(q) + '"</div>'; });
+        html += '</div>';
+    }
+    if (result.connections && result.connections.length) {
+        html += '<div class="summary-section"><div class="ss-label">🔗 你的连接</div>';
+        result.connections.forEach(function(c) { html += '<div class="ss-content">• ' + escapeHtml(c) + '</div>'; });
+        html += '</div>';
+    }
+    if (result.risks && result.risks.length) {
+        html += '<div class="summary-section"><div class="ss-label">⚠️ 需审核</div>';
+        result.risks.forEach(function(r) { html += '<div class="ss-content risk">• ' + escapeHtml(r) + '</div>'; });
+        html += '</div>';
+    }
+    if (result.questions && result.questions.length) {
+        html += '<div class="summary-section"><div class="ss-label">❓ 遗留问题</div>';
+        result.questions.forEach(function(q) { html += '<div class="ss-content">• ' + escapeHtml(q) + '</div>'; });
+        html += '</div>';
+    }
+    html += '<div style="text-align:center;margin-top:16px;"><button class="ss-btn" onclick="closeSummary()">✅ 确认</button></div>';
+    document.getElementById('summary-content').innerHTML = html;
+}
+
+function closeSummary() {
+    document.getElementById('summary-overlay').classList.remove('show');
+    _isEnding = false;
+    _nightPhilosophers = [];
+    backToSelect();
+}
 
 /* 语音输入 */
 var recognition = null;
