@@ -340,6 +340,9 @@
         <button class="btn-small btn-gold" onclick="showReview()">📖 今日复习</button>
         <button class="night-toggle" id="night-toggle-btn" onclick="toggleNightMode()">🌙 夜聊</button>
     </div>
+    <div id="wechat-banner" style="display:none;background:#2a2018;border-left:3px solid #c9a96e;padding:6px 12px;margin:8px auto;font-size:0.7rem;color:#b8a88a;border-radius:2px;max-width:420px;line-height:1.5;">
+        📱 微信内语音功能受限，文字对话完全正常。建议用 <b>Chrome</b> 打开获取完整语音支持
+    </div>
     <div class="select-title">择 一 位 先 哲</div>
     <div class="select-subtitle" id="select-subtitle">自由对话 · 与任何哲学家深入讨论</div>
     <input id="ph-search" type="text" placeholder="🔍 搜索哲学家…" oninput="filterPhilosophers(this.value)" style="display:block;margin:8px auto 0;padding:8px 16px;width:90%;max-width:400px;border:1px solid var(--parchment-light);border-radius:2px;background:rgba(255,255,255,0.03);color:var(--text-primary);font-size:0.85rem;font-family:inherit;outline:none;">
@@ -407,8 +410,9 @@
                     <button class="call-btn" onclick="showPhilosopherPicker()">叫ta来</button>
                 </div>
                 <button class="end-night-btn" id="end-night-btn" onclick="endNightChat()">🌙 结束夜聊</button>
-                <div style="display:flex;align-items:center;gap:8px;">
+                <div id="speech-controls" style="display:flex;align-items:center;gap:8px;">
                     <label class="auto-speak-label"><input type="checkbox" id="auto-speak-toggle"> 朗读</label>
+                    <select id="voice-select" style="font-size:0.6rem;padding:2px 4px;border:1px solid var(--parchment-light);border-radius:2px;background:transparent;color:var(--text-secondary);font-family:inherit;max-width:80px;display:none;" onchange="setVoice(this.value)"></select>
                     <span class="mode-badge free" style="font-size:0.6rem;">DeepSeek</span>
                 </div>
             </div>
@@ -762,9 +766,8 @@ function submitReviewResult(phId, result) {
 }
 
 function showPage(id) {
-    document.querySelectorAll('#login-page, #select-page, #review-page, #chat-page').forEach(function(p) {
-        p.style.display = 'none';
-    });
+    var pages = document.querySelectorAll('#login-page, #select-page, #review-page, #chat-page');
+    for (var pi = 0; pi < pages.length; pi++) { pages[pi].style.display = 'none'; }
     document.getElementById(id).style.display = 'flex';
     if (id === 'review-page') loadReviewDashboard();
 }
@@ -802,10 +805,11 @@ function backToSelect() {
 function filterPhilosophers(query) {
     var cards = document.querySelectorAll('#philosopher-list .ph-card');
     var q = query.toLowerCase().trim();
-    cards.forEach(function(c) {
+    for (var i = 0; i < cards.length; i++) {
+        var c = cards[i];
         var match = !q || c.textContent.toLowerCase().indexOf(q) !== -1;
         c.style.display = match ? '' : 'none';
-    });
+    }
 }
 
 /* 加载哲学家列表 */
@@ -920,7 +924,7 @@ function enterChat(phId, mode) {
     showPage('chat-page');
 
     fetchSystemPrompt(phId).then(function(systemPrompt) {
-        document.getElementById('loading-prompt')?.remove();
+        var lp = document.getElementById('loading-prompt'); if (lp) lp.remove();
         if (mode === 'review') {
             modeBadge.textContent = '📖 复习模式';
             modeBadge.className = 'mode-badge review';
@@ -946,7 +950,7 @@ function enterChat(phId, mode) {
             document.getElementById('mode-ai-led').classList.remove('active');
             _chatMode = 'user';
             _nightPhilosophers = [phId];
-            var nightPrompt = systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围（推测、类比、跨域连接），必须在结尾用 ⚠️ 标注，并说明"这个教材没写，是我根据逻辑推的"\n2. 如果学生让你主导对话，主动出题问他\n3. 保持对话深度，鼓励学生做跨域连接\n4. 【第一句话规则】你的第一句话必须是你的思想体系中的一个核心学术命题，以追问形式甩给学生。要求：选一个教材🔥必考或🟧重要级别的考点来问；追问要逼学生用自己的话解释或评价这个命题；不能是常识问题；不能是寒暄。示例语气：""心即理——如果心本身就是理，那格物是格什么？""';
+            var nightPrompt = systemPrompt + '\n\n【夜聊模式】\n【身份规则】你是' + ph.name + '本人。整场对话中你只能以' + ph.name + '的身份发言，任何时候不得扮演其他哲学家。除非学生先主动提起其他哲学家并要求你做对比，否则你绝对不能提其他哲学家的名字或思想。\n1. 当你的回答超出了教材已知内容的范围（推测、类比、跨域连接），必须在结尾用 ⚠️ 标注，并说明"这个教材没写，是我根据逻辑推的"\n2. 如果学生让你主导对话，主动出题问他\n3. 保持对话深度，鼓励学生做跨域连接\n4. 【第一句话规则】你的第一句话必须只关于你自己（' + ph.name + '）的核心思想，绝对不能问其他哲学家。选一个你自己独有的🔥必考考点，以追问形式甩给学生。不能是常识问题，不能是寒暄。';
             messageHistory = [{ role: "system", content: nightPrompt }];
             container.innerHTML = '<div class="msg system">🌙 夜聊 · ' + ph.name + '</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
 
@@ -958,7 +962,7 @@ function enterChat(phId, mode) {
             reviewBadge.style.display = 'none';
             document.getElementById('night-controls').classList.remove('show');
             document.getElementById('end-night-btn').classList.remove('show');
-            var freePrompt = systemPrompt + '\n\n【自由对话】\n【第一句话规则】你的第一句话必须是你的思想体系中的一个核心学术命题，以追问形式甩给学生。要求：选一个教材🔥必考或🟧重要级别的考点来问；追问要逼学生用自己的话解释或评价这个命题；不能是常识问题；不能是寒暄。示例语气：""心即理——如果心本身就是理，那格物是格什么？""';
+            var freePrompt = systemPrompt + '\n\n【自由对话】\n【身份规则】你是' + ph.name + '本人。整场对话中你只能以' + ph.name + '的身份发言，任何时候不得扮演其他哲学家。除非学生先主动提起其他哲学家并要求你做对比，否则你绝对不能提其他哲学家的名字或思想。\n【第一句话规则】你的第一句话必须只关于你自己（' + ph.name + '）的核心思想，绝对不能问其他哲学家。选一个你自己独有的🔥必考考点，以追问形式甩给学生。不能是常识问题，不能是寒暄。';
             messageHistory = [{ role: "system", content: freePrompt }];
             container.innerHTML = '<div class="msg system">═══ 与 ' + ph.name + ' 对话 ═══</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
         }
@@ -1052,10 +1056,15 @@ function send() {
             messageHistory.push({ role: "assistant", content: reply });
             var md = document.createElement('div');
             md.className = 'msg bot';
-            md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span> <button class="speak-btn" title="朗读">🔊</button>';
+            md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>' + (_speechSupported ? ' <button class="speak-btn" title="朗读">🔊</button>' : '');
             md.querySelector('.speak-btn').onclick = function() { speak(reply, this); };
             container.appendChild(md);
-            if (typeof speechSynthesis !== 'undefined' && document.getElementById('auto-speak-toggle').checked) speak(reply, md.querySelector('.speak-btn'));
+            // 自动朗读：在 iOS 上由于用户手势限制，异步回调中调用 speak() 会静默失败，所以不自动朗读
+            var isIOS = navigator.userAgent && /iPad|iPhone|iPod/.test(navigator.userAgent);
+            var autoToggle = document.getElementById('auto-speak-toggle');
+            if (_speechSupported && !isIOS && autoToggle && autoToggle.checked) {
+                speak(reply, md.querySelector('.speak-btn'));
+            }
             if (isReviewMode) {
                 var bots = messageHistory.filter(function(m) { return m.role === 'assistant'; });
                 if (bots.length >= 4) setTimeout(function() { showReviewDialog(); }, 1000);
@@ -1076,32 +1085,110 @@ function send() {
 
 /* 语音 */
 var currentUtterance = null, currentSpeakBtn = null;
-function speak(text, btn) {
-    if (typeof speechSynthesis === 'undefined') return;
-    if (currentSpeakBtn === btn && speechSynthesis.speaking) {
-        if (speechSynthesis.paused) { speechSynthesis.resume(); btn.classList.add('speaking'); }
-        else { speechSynthesis.pause(); btn.classList.remove('speaking'); }
-        return;
+var _speechVoices = [];
+var _speechSupported = typeof speechSynthesis !== 'undefined';
+
+function loadSpeechVoices() {
+    if (!_speechSupported) return [];
+    try {
+        var v = speechSynthesis.getVoices();
+        if (v.length) _speechVoices = v;
+    } catch(e) {}
+    return _speechVoices;
+}
+function getBestVoice(lang) {
+    // 优先选指定语言的女性声音（一般更自然）
+    if (_speechVoices.length === 0) loadSpeechVoices();
+    var langPref = lang || 'zh';
+    // 选中文声音：优先级 自然 > 微软 > 默认
+    var natural = _speechVoices.find(function(v) { return v.lang.indexOf(langPref) === 0 && (v.name.indexOf('Natural') !== -1 || v.name.indexOf('Neural') !== -1); });
+    if (natural) return natural;
+    var firstMatch = _speechVoices.find(function(v) { return v.lang.indexOf(langPref) === 0; });
+    return firstMatch || null;
+}
+var _selectedVoiceName = null;
+function populateVoiceSelect() {
+    var sel = document.getElementById('voice-select');
+    if (!sel || _speechVoices.length === 0) return;
+    sel.innerHTML = '';
+    // 只显示中文声音
+    var zhVoices = _speechVoices.filter(function(v) { return v.lang.indexOf('zh') === 0; });
+    if (zhVoices.length === 0) { sel.style.display = 'none'; return; }
+    sel.style.display = '';
+    zhVoices.forEach(function(v, idx) {
+        var opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = v.name.replace(/Microsoft|Online|Natural|Neural/gi, '').trim() || '语音 ' + (idx+1);
+        sel.appendChild(opt);
+    });
+    if (zhVoices.length > 1) {
+        // 插入「默认」选项在开头
+        var def = document.createElement('option');
+        def.value = '';
+        def.textContent = '🎤 自动';
+        sel.insertBefore(def, sel.firstChild);
+        sel.value = '';
     }
-    stopSpeaking();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-CN'; u.rate = 1.0;
-    var voices = speechSynthesis.getVoices();
-    var zv = voices.find(function(v) { return v.lang.includes('zh'); });
-    if (zv) u.voice = zv;
-    u.onstart = function() { if(btn)btn.classList.add('speaking'); document.getElementById('portrait-frame').classList.add('speaking'); };
-    u.onend = u.onerror = function() { if(btn)btn.classList.remove('speaking'); document.getElementById('portrait-frame').classList.remove('speaking'); currentUtterance=null; currentSpeakBtn=null; };
-    currentUtterance = u; currentSpeakBtn = btn;
-    speechSynthesis.speak(u);
+}
+function setVoice(name) {
+    _selectedVoiceName = name || null;
+}
+
+function speak(text, btn) {
+    if (!_speechSupported) return;
+    // iOS 要求：speak() 必须在用户手势处理中调用，否则静默失败
+    try {
+        if (currentSpeakBtn === btn && speechSynthesis.speaking) {
+            if (speechSynthesis.paused) { speechSynthesis.resume(); if(btn)btn.classList.add('speaking'); }
+            else { speechSynthesis.pause(); if(btn)btn.classList.remove('speaking'); }
+            return;
+        }
+        stopSpeaking();
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-CN'; u.rate = 0.95; u.pitch = 1.0;
+        var zv;
+        if (_selectedVoiceName) {
+            zv = _speechVoices.find(function(v) { return v.name === _selectedVoiceName; });
+        }
+        if (!zv) zv = getBestVoice('zh');
+        if (zv) u.voice = zv;
+        u.onstart = function() { try { if(btn)btn.classList.add('speaking'); var pf = document.getElementById('portrait-frame'); if(pf)pf.classList.add('speaking'); } catch(e){} };
+        u.onend = u.onerror = function() {
+            try { if(btn)btn.classList.remove('speaking'); var pf = document.getElementById('portrait-frame'); if(pf)pf.classList.remove('speaking'); } catch(e){}
+            currentUtterance=null; currentSpeakBtn=null;
+        };
+        currentUtterance = u; currentSpeakBtn = btn;
+        speechSynthesis.speak(u);
+    } catch(e) {
+        // 静默失败（iOS 常见）
+        currentUtterance = null; currentSpeakBtn = null;
+    }
 }
 function stopSpeaking() {
-    if (typeof speechSynthesis === 'undefined') return;
-    speechSynthesis.cancel();
-    if (currentSpeakBtn) currentSpeakBtn.classList.remove('speaking');
-    document.getElementById('portrait-frame').classList.remove('speaking');
+    if (!_speechSupported) return;
+    try {
+        speechSynthesis.cancel();
+    } catch(e) {}
+    if (currentSpeakBtn) try { currentSpeakBtn.classList.remove('speaking'); } catch(e){}
+    try {
+        var pf = document.getElementById('portrait-frame');
+        if(pf)pf.classList.remove('speaking');
+    } catch(e){}
     currentUtterance = null; currentSpeakBtn = null;
 }
-if (typeof speechSynthesis !== 'undefined') { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = function() { speechSynthesis.getVoices(); }; }
+if (_speechSupported) {
+    try {
+        speechSynthesis.getVoices();
+        speechSynthesis.onvoiceschanged = function() {
+            loadSpeechVoices();
+            populateVoiceSelect();
+        };
+        setTimeout(function() {
+            loadSpeechVoices();
+            populateVoiceSelect();
+        }, 500);
+    } catch(e) {}
+}
 
 function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
@@ -1419,6 +1506,18 @@ function toggleMic() {
 
 // 页面加载后初始化语音识别
 initSpeechRecognition();
+
+// 语音不支持时隐藏朗读控件
+if (!_speechSupported) {
+    var sc = document.getElementById('speech-controls');
+    if (sc) sc.style.display = 'none';
+}
+
+// 检测微信浏览器
+if (navigator.userAgent.indexOf('MicroMessenger') !== -1) {
+    var wb = document.getElementById('wechat-banner');
+    if (wb) wb.style.display = 'block';
+}
 
 /* 启动 */
 (function() {
