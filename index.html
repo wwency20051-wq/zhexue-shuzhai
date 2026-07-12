@@ -729,25 +729,7 @@ function getReviewStateLocal() {
     catch(e) { return {}; }
 }
 function getReviewState() {
-    var s = getReviewStateLocal();
-    // 保底自动填充：只要 localStorage 是空的，就把所有哲学家都加进去
-    var hasAny = false;
-    for (var _k in s) { hasAny = true; break; }
-    if (!hasAny) {
-        for (var _id in PHILOSOPHERS) {
-            var _ph = PHILOSOPHERS[_id];
-            s[_id] = {
-                name: _ph ? _ph.name : _id,
-                stage: 0,
-                last_reviewed: null,
-                next_due: new Date().toISOString().split('T')[0],
-                consecutive_remembered: 0,
-                total_reviews: 0,
-            };
-        }
-        saveReviewState(s);
-    }
-    return s;
+    return getReviewStateLocal();
 }
 function saveReviewState(s) {
     localStorage.setItem('zhexue_review_state', JSON.stringify(s));
@@ -1029,29 +1011,33 @@ function renderReviewList(due) {
 }
 
 function loadReviewDashboard() {
-    // 纯前端方案：直接从 localStorage 读取（getReviewState 会自动填充）
-    var s = getReviewSummary();
-    document.getElementById('r-due').textContent = s.due_today;
-    document.getElementById('r-total').textContent = s.total_philosophers;
-    document.getElementById('r-mastered').textContent = s.mastered;
-    document.getElementById('r-progress').textContent = s.in_progress;
-    renderReviewList(getReviewDue());
+    var c = document.getElementById('review-items');
+    c.innerHTML = '<div class="review-empty"><div class="big">⏳</div>正在扫描笔记库…</div>';
 
-    // 后台同步服务端（不阻塞渲染）
+    // 通知服务端：扫描笔记，只初始化有笔记的哲学家
     fetch('/api/review/init-from-notes').then(function(r) { return r.json(); }).then(function(data) {
         var s2 = data.summary || {};
         document.getElementById('r-due').textContent = s2.due_today || 0;
         document.getElementById('r-total').textContent = s2.total_philosophers || 0;
         document.getElementById('r-mastered').textContent = s2.mastered || 0;
         document.getElementById('r-progress').textContent = s2.in_progress || 0;
-        if (data.due && data.due.length) {
-            // 同步到 localStorage
-            fetch('/api/review/state').then(function(r2) { return r2.json(); }).then(function(serverState) {
-                localStorage.setItem('zhexue_review_state', JSON.stringify(serverState));
-                renderReviewList(data.due);
-            }).catch(function() {});
-        }
-    }).catch(function() {});
+
+        // 把服务端状态同步到 localStorage（仅包含有笔记的哲学家）
+        fetch('/api/review/state').then(function(r2) { return r2.json(); }).then(function(serverState) {
+            localStorage.setItem('zhexue_review_state', JSON.stringify(serverState));
+            renderReviewList(data.due);
+        }).catch(function() {
+            renderReviewList(data.due);
+        });
+    }).catch(function() {
+        // 服务端不可用时的保底：只显示用户手动复习过的哲学家
+        var s = getReviewSummary();
+        document.getElementById('r-due').textContent = s.due_today;
+        document.getElementById('r-total').textContent = s.total_philosophers;
+        document.getElementById('r-mastered').textContent = s.mastered;
+        document.getElementById('r-progress').textContent = s.in_progress;
+        renderReviewList(getReviewDue());
+    });
 }
 
 function startReview(phId) {
@@ -1250,7 +1236,7 @@ function send() {
             if (_speechSupported) btns += ' <button class="speak-btn" title="朗读">🔊</button>';
             btns += ' <button class="note-btn" title="记入笔记" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:none;border-radius:50%;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:0.7rem;margin-left:4px;transition:all0.2s;vertical-align:middle;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'" onclick="saveExchange(\'' + _escapeJsStr(text) + '\', \'' + _escapeJsStr(reply) + '\', this)">💾</button>';
             md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>' + btns;
-            md.querySelector('.speak-btn').onclick = function() { speak(reply, this); };
+            if (_speechSupported) md.querySelector('.speak-btn').onclick = function() { speak(reply, this); };
             container.appendChild(md);
             // 自动朗读：在 iOS 上由于用户手势限制，异步回调中调用 speak() 会静默失败，所以不自动朗读
             var isIOS = navigator.userAgent && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -1971,12 +1957,12 @@ if (navigator.userAgent.indexOf('MicroMessenger') !== -1) {
             });
         }
     }
-    console.log('[哲思书斋] v2.2 loaded');
-        // 版本自检：如果页面版本变了，清空旧的复习状态让 getReviewState 自动重建
+    console.log('[哲思书斋] v2.3 loaded');
+        // 版本自检：清空旧复习状态，让服务端按笔记库重新初始化
         var _pgVer = localStorage.getItem('zhexue_page_ver');
-        if (!_pgVer || _pgVer !== 'v2.2') {
+        if (!_pgVer || _pgVer !== 'v2.3') {
             localStorage.removeItem('zhexue_review_state');
-            localStorage.setItem('zhexue_page_ver', 'v2.2');
+            localStorage.setItem('zhexue_page_ver', 'v2.3');
         }
 })();
 
