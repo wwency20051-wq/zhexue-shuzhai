@@ -3,9 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>哲思书斋 · 与先贤对话</title>
 <meta name="description" content="与33位先贤对话——你的随身中国哲学导师">
 <meta name="theme-color" content="#0d0d0d">
+<!-- version: 2026-07-12-fix5 -->
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -301,6 +305,10 @@
         .ph-card { width: 150px; padding: 20px 12px; }
         .msg { max-width: 92%; }
         .review-stats { flex-wrap: wrap; gap: 10px; }
+        #input-area input { font-size: 16px; }
+        #night-controls { gap: 4px; }
+        #night-controls .mode-label { display: none; }
+        #ph-search { font-size: 16px; }
     }
 </style>
 </head>
@@ -332,7 +340,8 @@
         <button class="night-toggle" id="night-toggle-btn" onclick="toggleNightMode()">🌙 夜聊</button>
     </div>
     <div class="select-title">择 一 位 先 哲</div>
-    <div class="select-subtitle">自由对话 · 与任何哲学家深入讨论</div>
+    <div class="select-subtitle" id="select-subtitle">自由对话 · 与任何哲学家深入讨论</div>
+    <input id="ph-search" type="text" placeholder="🔍 搜索哲学家…" oninput="filterPhilosophers(this.value)" style="display:block;margin:8px auto 0;padding:8px 16px;width:90%;max-width:400px;border:1px solid var(--parchment-light);border-radius:2px;background:rgba(255,255,255,0.03);color:var(--text-primary);font-size:0.85rem;font-family:inherit;outline:none;">
     <div id="philosopher-list" class="philosopher-grid"></div>
 </div>
 
@@ -534,6 +543,94 @@ var _chatMode = 'user';
 var _nightPhilosophers = [];
 var _isEnding = false;
 
+/* 夜聊草稿：防睡着自动保存/恢复 */
+function saveNightDraft() {
+    if (!_nightPhilosophers.length) return;
+    var draft = {
+        philosophers: _nightPhilosophers,
+        chatMode: _chatMode,
+        history: messageHistory.map(function(m) { return { role: m.role, content: m.content }; }),
+        currentId: currentPhilosopher,
+        timestamp: Date.now(),
+    };
+    localStorage.setItem('zhexue_night_draft', JSON.stringify(draft));
+}
+
+function restoreNightDraft() {
+    try {
+        var raw = localStorage.getItem('zhexue_night_draft');
+        if (!raw) return null;
+        var draft = JSON.parse(raw);
+        // 过期检查：超过24小时的草稿不要
+        if (Date.now() - (draft.timestamp || 0) > 86400000) {
+            localStorage.removeItem('zhexue_night_draft');
+            return null;
+        }
+        return draft;
+    } catch(e) { return null; }
+}
+
+function clearNightDraft() {
+    localStorage.removeItem('zhexue_night_draft');
+}
+
+function applyNightDraft(draft) {
+    _nightPhilosophers = draft.philosophers || [];
+    _chatMode = draft.chatMode || 'user';
+    currentPhilosopher = draft.currentId;
+    messageHistory = draft.history || [];
+    var ph = PHILOSOPHERS[draft.currentId];
+    if (!ph) { clearNightDraft(); backToSelect(); return; }
+
+    // 恢复 UI
+    var pi = document.getElementById('portrait-img');
+    var pc = document.getElementById('portrait-char');
+    var uri = PORTRAIT_URIS[draft.currentId];
+    if (uri) { pi.src = uri; pi.style.display = 'block'; pc.style.display = 'none'; }
+    else { pi.style.display = 'none'; pc.style.display = 'block'; pc.textContent = ph.emoji; }
+    document.getElementById('portrait-name').textContent = ph.name;
+    document.getElementById('portrait-title').textContent = ph.title;
+    document.getElementById('portrait-era').textContent = ph.era;
+    document.getElementById('portrait-frame').style.borderColor = ph.color || '#c9a96e';
+    document.getElementById('chat-mini-char').textContent = ph.emoji;
+    document.getElementById('chat-mini-name').textContent = ph.name;
+    document.getElementById('chat-mini-extra').textContent = ph.era + ' · ' + (ph.title.split('·')[0] || '').trim();
+    document.getElementById('chat-page').style.setProperty('--ph-color', ph.color || '#c9a96e');
+    document.getElementById('mode-badge').textContent = '🌙 夜聊';
+    document.getElementById('mode-badge').style.borderColor = 'var(--gold)';
+    document.getElementById('mode-badge').style.color = 'var(--gold)';
+    document.getElementById('night-controls').classList.add('show');
+    document.getElementById('end-night-btn').classList.add('show');
+    if (_chatMode === 'ai') { document.getElementById('mode-ai-led').classList.add('active'); document.getElementById('mode-user-led').classList.remove('active'); }
+
+    // 恢复对话消息
+    var container = document.getElementById('messages');
+    container.innerHTML = '';
+    messageHistory.forEach(function(m) {
+        if (m.role === 'system') return;
+        var div = document.createElement('div');
+        div.className = m.role === 'user' ? 'msg user' : 'msg bot';
+        div.innerHTML = '<span class="msg-content">' + escapeHtml(m.content) + '</span>';
+        container.appendChild(div);
+    });
+    if (!container.innerHTML) container.innerHTML = '<div class="msg system">继续夜聊</div>';
+    container.scrollTop = container.scrollHeight;
+
+    document.getElementById('msg-input').value = '';
+    document.getElementById('msg-input').focus();
+    showPage('chat-page');
+}
+
+function showRestoreDraftDialog(draft) {
+    var ph = PHILOSOPHERS[draft.currentId];
+    var name = ph ? ph.name : '先哲';
+    if (confirm('🌙 检测到未结束的夜聊（' + name + '，共' + (draft.history ? Math.floor(draft.history.length/2) : 0) + '轮对话）\n\n要继续吗？\n「确定」继续 ／ 「取消」删除')) {
+        applyNightDraft(draft);
+    } else {
+        clearNightDraft();
+    }
+}
+
 /* ============================================================
    艾宾浩斯复习引擎（localStorage 版，纯前端可用）
    ============================================================ */
@@ -673,6 +770,8 @@ function enter() {
     var ghKey = document.getElementById('gh-token-input').value.trim();
     if (ghKey) localStorage.setItem('github_token', ghKey);
     loadPhilosophers();
+    var draft = restoreNightDraft();
+    if (draft) setTimeout(function() { showRestoreDraftDialog(draft); }, 600);
 }
 
 function switchUser() {
@@ -691,6 +790,16 @@ function backToSelect() {
     messageHistory = [];
     isReviewMode = false;
     currentReviewPhId = null;
+}
+
+/* 搜索哲学家 */
+function filterPhilosophers(query) {
+    var cards = document.querySelectorAll('#philosopher-list .ph-card');
+    var q = query.toLowerCase().trim();
+    cards.forEach(function(c) {
+        var match = !q || c.textContent.toLowerCase().indexOf(q) !== -1;
+        c.style.display = match ? '' : 'none';
+    });
 }
 
 /* 加载哲学家列表 */
@@ -911,6 +1020,10 @@ function send() {
                 var bots = messageHistory.filter(function(m) { return m.role === 'assistant'; });
                 if (bots.length >= 4) setTimeout(function() { showReviewDialog(); }, 1000);
             }
+            // 夜聊自动存草稿（每5条用户消息）
+            if (!isReviewMode && messageHistory.length > 1 && messageHistory.filter(function(m) { return m.role === 'user'; }).length % 5 === 0) {
+                saveNightDraft();
+            }
         }
         container.scrollTop = container.scrollHeight;
     }).catch(function(err) {
@@ -973,41 +1086,46 @@ function setNightMode(mode) {
     _chatMode = mode;
     document.getElementById('mode-user-led').classList.toggle('active', mode === 'user');
     document.getElementById('mode-ai-led').classList.toggle('active', mode === 'ai');
-    if (mode === 'ai' && messageHistory.length > 0) {
-        // 追加一条 AI-led 指令最近的 AI 回复之后
-        var lastMsg = messageHistory[messageHistory.length - 1];
-        if (lastMsg.role === 'assistant') {
-            // 已经在 AI 主导模式或 AI 刚说完，不用触发
-            return;
+
+    // 通过修改 system prompt 控制 AI 行为——不要 double API call
+    var sysMsg = messageHistory.length > 0 ? messageHistory[0] : null;
+    if (!sysMsg || sysMsg.role !== 'system') return;
+
+    var aiLedSuffix = '\n\n【AI主导模式】你现在是主导对话的一方。每次回答完学生的问题后，必须在末尾提出一个追问，深入探讨这个话题。一次只问一个问题，不要自己替学生回答。';
+    if (mode === 'ai') {
+        // 注入主导指令（如果还没注入）
+        if (sysMsg.content.indexOf('【AI主导模式】') === -1) {
+            sysMsg.content += aiLedSuffix;
         }
-        // 用户刚说完，切 AI 主导 → 让 AI 主动出题
-        var followPrompt = { role: "system", content: "现在切换到AI主导模式。请你围绕你的核心思想，向学生提出一个有深度的问题让他回答。一次只提一个问题。" };
-        // 临时注入指令作为最后一条 user 消息（实际上不显示）
-        // 用 system message 在 context 末尾更干净
-        messageHistory.push({ role: "user", content: "[请切换到AI主导模式，主动向我提问]" });
-        var input = document.getElementById('msg-input');
-        var container = document.getElementById('messages');
-        var typing = document.createElement('div');
-        typing.className = 'typing-indicator';
-        typing.innerHTML = '<span></span><span></span><span></span>';
-        container.appendChild(typing);
-        container.scrollTop = container.scrollHeight;
-        fetch(DEEPSEEK_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY() },
-            body: JSON.stringify({ model: 'deepseek-chat', messages: messageHistory, temperature: 0.7, max_tokens: 1024 })
-        }).then(function(r) { return r.json(); }).then(function(data) {
-            typing.remove();
-            if (!data.error) {
-                var reply = data.choices[0].message.content;
-                messageHistory.push({ role: "assistant", content: reply });
-                var md = document.createElement('div');
-                md.className = 'msg bot';
-                md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>';
-                container.appendChild(md);
-                container.scrollTop = container.scrollHeight;
-            }
-        }).catch(function() { typing.remove(); });
+        // 如果最后一条是用户消息 → 立即让 AI 出第一题
+        var last = messageHistory[messageHistory.length - 1];
+        if (last && last.role === 'user') {
+            var container = document.getElementById('messages');
+            var typing = document.createElement('div');
+            typing.className = 'typing-indicator';
+            typing.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(typing);
+            container.scrollTop = container.scrollHeight;
+            fetch(DEEPSEEK_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY() },
+                body: JSON.stringify({ model: 'deepseek-chat', messages: messageHistory, temperature: 0.7, max_tokens: 1024 })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                typing.remove();
+                if (!data.error) {
+                    var reply = data.choices[0].message.content;
+                    messageHistory.push({ role: "assistant", content: reply });
+                    var md = document.createElement('div');
+                    md.className = 'msg bot';
+                    md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>';
+                    container.appendChild(md);
+                    container.scrollTop = container.scrollHeight;
+                }
+            }).catch(function() { typing.remove(); });
+        }
+    } else {
+        // 切回用户主导 → 移除 AI 主导指令
+        sysMsg.content = sysMsg.content.replace(aiLedSuffix, '');
     }
 }
 
@@ -1181,6 +1299,7 @@ function closeSummary() {
     document.getElementById('summary-overlay').classList.remove('show');
     _isEnding = false;
     _nightPhilosophers = [];
+    clearNightDraft();
     backToSelect();
 }
 
@@ -1268,12 +1387,18 @@ initSpeechRecognition();
         if (ghSaved) document.getElementById('gh-token-input').value = ghSaved;
         // 先显示页面，再异步同步云端数据（不阻塞渲染）
         loadPhilosophers();
+        // 检测未结束的夜聊草稿
+        var draft = restoreNightDraft();
+        if (draft) {
+            setTimeout(function() { showRestoreDraftDialog(draft); }, 500);
+        }
         if (ghSaved) {
             ghReadReviewState(function(state) {
                 // 静默合并云端数据到 localStorage，不阻塞 UI
             });
         }
     }
+    console.log('[哲思书斋] v2.1 loaded');
 })();
 
 </script>
