@@ -412,7 +412,8 @@
                 <button class="end-night-btn" id="end-night-btn" onclick="endNightChat()">🌙 结束夜聊</button>
                 <div id="speech-controls" style="display:flex;align-items:center;gap:8px;">
                     <label class="auto-speak-label"><input type="checkbox" id="auto-speak-toggle"> 朗读</label>
-                    <select id="voice-select" style="font-size:0.6rem;padding:2px 4px;border:1px solid var(--parchment-light);border-radius:2px;background:transparent;color:var(--text-secondary);font-family:inherit;max-width:80px;display:none;" onchange="setVoice(this.value)"></select>
+                    <select id="voice-select" style="font-size:0.65rem;padding:2px 6px;border:1px solid var(--parchment-light);border-radius:2px;background:rgba(255,255,255,0.05);color:var(--text-secondary);font-family:inherit;max-width:150px;" onchange="setVoice(this.value)"></select>
+                    <span class="voice-tip" id="voice-tip" style="display:none;font-size:0.55rem;color:#666;cursor:pointer;" onclick="alert('安装 Google TTS (文字转语音) App 后，在 设置 -> 语言和输入法 -> 文字转语音输出 -> 首选引擎 中选 Google TTS，下载中文语音数据包，可以得到更自然的声音。')">i 换声</span>
                     <span class="mode-badge free" style="font-size:0.6rem;">DeepSeek</span>
                 </div>
             </div>
@@ -925,6 +926,8 @@ function enterChat(phId, mode) {
 
     fetchSystemPrompt(phId).then(function(systemPrompt) {
         var lp = document.getElementById('loading-prompt'); if (lp) lp.remove();
+        // 铁律：放在 system prompt 最开头，盖过一切
+        var identityRule = '【⚠️你只能谈论' + ph.name + '自己。你的所有知识来源仅限于下方教材资料，你不知道教材资料以外的任何内容。学生没提其他哲学家时，你一个字都不能提。这条规则绝对优先。】\n\n';
         if (mode === 'review') {
             modeBadge.textContent = '📖 复习模式';
             modeBadge.className = 'mode-badge review';
@@ -933,9 +936,9 @@ function enterChat(phId, mode) {
             document.getElementById('rd-title').textContent = '📖 复习完毕 · ' + ph.name;
             document.getElementById('rd-prompt').textContent = '你觉得自己对' + ph.name + '的核心内容掌握得怎么样？';
 
-            var rp = systemPrompt + '\n\n【复习模式】\n帮学生复习关于你（' + ph.name + '）的核心思想。规则：\n1. 出核心命题让学生用自己的话解释\n2. 根据回答判断掌握程度\n3. 答得好追问更深的层次\n4. 答得模糊就帮他梳理但不直接给答案\n5. 3-5轮后学生自评\n6. 重要：不能直接照搬笔记原文问问题，要用自己的话问';
+            var rp = identityRule + systemPrompt + '\n\n【复习模式】\n帮学生复习关于你（' + ph.name + '）的核心思想。规则：\n1. 出核心命题让学生用自己的话解释\n2. 根据回答判断掌握程度\n3. 答得好追问更深的层次\n4. 答得模糊就帮他梳理但不直接给答案\n5. 3-5轮后学生自评\n6. 重要：不能直接照搬笔记原文问问题，要用自己的话问';
             messageHistory = [{ role: "system", content: rp }];
-            var opening = "我们来复习关于我的核心内容。你先说说——你觉得我最重要的思想是什么？";
+            var opening = "我们来复习一下我的核心思想。你先说说——你最理解我的哪个观点？";
             messageHistory.push({ role: "assistant", content: opening });
             container.innerHTML = '<div class="msg system">═══ 复习模式 · ' + ph.name + ' ═══</div><div class="msg bot">' + escapeHtml(opening) + '</div>';
         } else if (mode === 'night') {
@@ -950,7 +953,7 @@ function enterChat(phId, mode) {
             document.getElementById('mode-ai-led').classList.remove('active');
             _chatMode = 'user';
             _nightPhilosophers = [phId];
-            var nightPrompt = systemPrompt + '\n\n【夜聊模式】\n【身份规则】你是' + ph.name + '本人。整场对话中你只能以' + ph.name + '的身份发言，任何时候不得扮演其他哲学家。除非学生先主动提起其他哲学家并要求你做对比，否则你绝对不能提其他哲学家的名字或思想。\n1. 当你的回答超出了教材已知内容的范围（推测、类比、跨域连接），必须在结尾用 ⚠️ 标注，并说明"这个教材没写，是我根据逻辑推的"\n2. 如果学生让你主导对话，主动出题问他\n3. 保持对话深度，鼓励学生做跨域连接\n4. 【第一句话规则】你的第一句话必须只关于你自己（' + ph.name + '）的核心思想，绝对不能问其他哲学家。选一个你自己独有的🔥必考考点，以追问形式甩给学生。不能是常识问题，不能是寒暄。';
+            var nightPrompt = identityRule + systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围，必须在结尾用 ⚠️ 标注\n2. 如果学生让你主导对话，主动出题问他\n3. 鼓励学生做跨域连接\n4. 【第一句话】只问关于' + ph.name + '自己的核心思想。';
             messageHistory = [{ role: "system", content: nightPrompt }];
             container.innerHTML = '<div class="msg system">🌙 夜聊 · ' + ph.name + '</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
 
@@ -962,44 +965,52 @@ function enterChat(phId, mode) {
             reviewBadge.style.display = 'none';
             document.getElementById('night-controls').classList.remove('show');
             document.getElementById('end-night-btn').classList.remove('show');
-            var freePrompt = systemPrompt + '\n\n【自由对话】\n【身份规则】你是' + ph.name + '本人。整场对话中你只能以' + ph.name + '的身份发言，任何时候不得扮演其他哲学家。除非学生先主动提起其他哲学家并要求你做对比，否则你绝对不能提其他哲学家的名字或思想。\n【第一句话规则】你的第一句话必须只关于你自己（' + ph.name + '）的核心思想，绝对不能问其他哲学家。选一个你自己独有的🔥必考考点，以追问形式甩给学生。不能是常识问题，不能是寒暄。';
+            var freePrompt = identityRule + systemPrompt + '\n\n【自由对话】\n【第一句话】只问关于' + ph.name + '自己的核心思想。';
             messageHistory = [{ role: "system", content: freePrompt }];
             container.innerHTML = '<div class="msg system">═══ 与 ' + ph.name + ' 对话 ═══</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
         }
 
-        // 自由/夜聊模式：让 AI 从笔记里生成第一句提问
+        // 自由/夜聊模式：用独立 prompt 让 AI 只生成第一句提问（不跟主对话混在一起）
         if (mode !== 'review') {
             _firstQuestionLoading = true;
+            // 过滤教学资料中其他哲学家的名字
+            var otherPhNames = Object.keys(PHILOSOPHERS).filter(function(k) { return k !== phId; }).map(function(k) { return PHILOSOPHERS[k].name; });
+            var cleanSource = systemPrompt.substring(0, 2000);
+            // 遇到其他哲学家的名字用"其他哲学家"替代
+            for (var ni = 0; ni < otherPhNames.length; ni++) {
+                var re = new RegExp(otherPhNames[ni].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                cleanSource = cleanSource.replace(re, '其他哲学家');
+            }
+            var qGenPrompt = [
+                { role: "system", content: "你的知识来源仅限于下方教材资料，你不知道教材以外的内容。" },
+                { role: "user", content: '哲学家：' + ph.name + '\n\n教材资料（你的全部知识）：\n' + cleanSource + '\n\n请用' + ph.name + '的口气生成一句第一句提问。要求：\n1. 问题必须只关于' + ph.name + '自己的核心思想，绝对不能提其他哲学家\n2. 必须是学术级别的追问，逼学生用自己的话解释或评价一个核心命题\n3. 从资料中选一个' + ph.name + '最独特的核心命题来问\n4. 用' + ph.name + '本人的第一人称语气\n5. 只输出问题本身，不要任何前缀\n6. 不能是常识问题，不能是寒暄' }
+            ];
             fetch(DEEPSEEK_API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY() },
-                body: JSON.stringify({ model: 'deepseek-chat', messages: messageHistory, temperature: 0.7, max_tokens: 256 })
+                body: JSON.stringify({ model: 'deepseek-chat', messages: qGenPrompt, temperature: 0.5, max_tokens: 150 })
             }).then(function(r) { return r.json(); }).then(function(data) {
                 _firstQuestionLoading = false;
                 var fq = document.getElementById('first-question');
+                var firstMsg = '关于我的思想，你有什么想讨论的吗？';
                 if (!data.error && data.choices && data.choices[0]) {
-                    var firstMsg = data.choices[0].message.content;
-                    messageHistory.push({ role: "assistant", content: firstMsg });
-                    if (fq) {
-                        fq.className = 'msg bot';
-                        fq.innerHTML = '<span class="msg-content">' + escapeHtml(firstMsg) + '</span>';
-                    }
-                } else {
-                    // fallback：API 失败时给一句温和的提问
-                    var fallback = '关于我的思想，你有什么想讨论的吗？';
-                    messageHistory.push({ role: "assistant", content: fallback });
-                    if (fq) {
-                        fq.className = 'msg bot';
-                        fq.innerHTML = '<span class="msg-content">' + fallback + '</span>';
-                    }
+                    firstMsg = data.choices[0].message.content.replace(/^["\']|["\']$/g, '').trim();
+                }
+                messageHistory.push({ role: "assistant", content: firstMsg });
+                if (fq) {
+                    fq.className = 'msg bot';
+                    fq.innerHTML = '<span class="msg-content">' + escapeHtml(firstMsg) + '</span> <button class="speak-btn" title="朗读">🔊</button>';
+                    fq.querySelector('.speak-btn').onclick = function() { speak(firstMsg, this); };
                 }
                 container.scrollTop = container.scrollHeight;
             }).catch(function() {
                 _firstQuestionLoading = false;
                 var fq = document.getElementById('first-question');
+                var fallback = '关于我的思想，你有什么想讨论的吗？';
+                messageHistory.push({ role: "assistant", content: fallback });
                 if (fq) {
                     fq.className = 'msg bot';
-                    fq.innerHTML = '<span class="msg-content">关于我的思想，你有什么想讨论的吗？</span>';
+                    fq.innerHTML = '<span class="msg-content">' + fallback + '</span>';
                 }
             });
         }
@@ -1125,10 +1136,13 @@ function populateVoiceSelect() {
         // 插入「默认」选项在开头
         var def = document.createElement('option');
         def.value = '';
-        def.textContent = '🎤 自动';
+        def.textContent = '\u{1F3A4} 自动';
         sel.insertBefore(def, sel.firstChild);
         sel.value = '';
     }
+    // 声音少时显示"换声"提示
+    var tip = document.getElementById('voice-tip');
+    if (tip) tip.style.display = zhVoices.length <= 1 ? '' : 'none';
 }
 function setVoice(name) {
     _selectedVoiceName = name || null;
@@ -1145,7 +1159,7 @@ function speak(text, btn) {
         }
         stopSpeaking();
         var u = new SpeechSynthesisUtterance(text);
-        u.lang = 'zh-CN'; u.rate = 0.95; u.pitch = 1.0;
+        u.lang = 'zh-CN'; u.rate = 0.8; u.pitch = 1.0;
         var zv;
         if (_selectedVoiceName) {
             zv = _speechVoices.find(function(v) { return v.name === _selectedVoiceName; });
@@ -1327,8 +1341,9 @@ function switchToPhilosopher(phId) {
     container.insertAdjacentHTML('beforeend', '<div class="msg system">🌙 ' + oldName + ' → ' + ph.name + '</div>');
 
     fetchSystemPrompt(phId).then(function(systemPrompt) {
+        var identityRule = '【⚠️你只能谈论' + ph.name + '自己。你的所有知识来源仅限于下方教材资料，你不知道教材资料以外的任何内容。学生没提其他哲学家时，你一个字都不能提。这条规则绝对优先。】\n\n';
         var contextNote = '【上下文】\n你刚和' + oldName + '讨论了以下内容：\n学生问："' + lastUserMsg + '"\n' + oldName + '答："' + lastAiMsg + '"\n现在学生想听听你对同一问题的看法。\n\n';
-        var contextPrompt = contextNote + systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围，必须在结尾用 ⚠️ 标注\n2. 鼓励学生做跨域连接';
+        var contextPrompt = identityRule + contextNote + systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围，必须在结尾用 ⚠️ 标注\n2. 鼓励学生做跨域连接';
         // 替换 system message
         messageHistory = messageHistory.filter(function(m) { return m.role !== 'system'; });
         var switchMsg = '🌙 ' + ph.name + '来接话了。关于刚才聊到的问题——' + lastUserMsg + '——你的看法是？';
@@ -1437,23 +1452,15 @@ var recognition = null;
 var isRecording = false;
 var micBtn = document.getElementById('mic-btn');
 
-function initSpeechRecognition() {
+function createRecognition() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-        if (micBtn) {
-            micBtn.classList.add('unsupported');
-            micBtn.innerHTML = '🎤<span class="hint-tip">此浏览器不支持<br>用键盘麦克风输入</span>';
-        }
-        if (micBtn) micBtn.title = '浏览器不支持语音识别，请用键盘自带的语音输入';
-        return;
-    }
-    recognition = new SR();
-    recognition.lang = 'zh-CN';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = function(event) {
+    if (!SR) return null;
+    var r = new SR();
+    r.lang = 'zh-CN';
+    r.continuous = false;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    r.onresult = function(event) {
         var transcript = '';
         for (var i = event.resultIndex; i < event.results.length; i++) {
             transcript += event.results[i][0].transcript;
@@ -1465,47 +1472,62 @@ function initSpeechRecognition() {
             }
         }
     };
-    recognition.onend = function() {
+    r.onend = function() {
         isRecording = false;
         if (micBtn) micBtn.classList.remove('recording');
+        recognition = null; // Chrome 的 recognition 对象用一次后失效，下次重新创建
     };
-    recognition.onerror = function(event) {
+    r.onerror = function(event) {
         isRecording = false;
         if (micBtn) micBtn.classList.remove('recording');
-        if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        recognition = null;
+        if (event.error === 'not-allowed') {
+            micBtn.classList.add('unsupported');
+            micBtn.innerHTML = '🎤<span class="hint-tip">麦克风权限被拒<br>请在浏览器地址栏左侧解锁</span>';
+        } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
             console.warn('语音识别错误:', event.error);
         }
     };
+    return r;
 }
 
 function toggleMic() {
-    if (!recognition) {
-        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) {
-            // 提示用键盘输入
-            micBtn.classList.add('unsupported');
-            alert('你的浏览器不支持语音识别。\n\nAndroid: 用 Chrome 浏览器\niPhone: 点输入框→键盘自带麦克风按钮');
-            return;
-        }
-        initSpeechRecognition();
+    // 检测是否安全上下文（localhost 或 HTTPS）
+    if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && location.protocol !== 'https:') {
+        micBtn.classList.add('unsupported');
+        micBtn.innerHTML = '🎤<span class="hint-tip">麦克风需要 HTTPS<br>用本机 localhost 访问</span>';
+        return;
+    }
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        micBtn.classList.add('unsupported');
+        micBtn.innerHTML = '🎤<span class="hint-tip">此浏览器不支持<br>用键盘麦克风输入</span>';
+        return;
     }
     if (isRecording) {
-        recognition.stop();
+        if (recognition) { recognition.stop(); recognition = null; }
         isRecording = false;
         micBtn.classList.remove('recording');
     } else {
         try {
+            recognition = createRecognition();
             recognition.start();
             isRecording = true;
             micBtn.classList.add('recording');
         } catch(e) {
+            if (recognition) { recognition = null; }
             setTimeout(function() { toggleMic(); }, 300);
         }
     }
 }
 
-// 页面加载后初始化语音识别
-initSpeechRecognition();
+// 初始检测：如果非安全上下文，提前标记
+if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && location.protocol !== 'https:') {
+    if (micBtn) {
+        micBtn.classList.add('unsupported');
+        micBtn.innerHTML = '🎤<span class="hint-tip">麦克风需要 HTTPS<br>用本机 localhost 访问</span>';
+    }
+}
 
 // 语音不支持时隐藏朗读控件
 if (!_speechSupported) {
