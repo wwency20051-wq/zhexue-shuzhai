@@ -617,7 +617,7 @@ function backToSelect() {
     currentReviewPhId = null;
 }
 
-/* 加载哲学家列表（分批渲染，不阻塞UI） */
+/* 加载哲学家列表 */
 function loadPhilosophers() {
     var container = document.getElementById('philosopher-list');
     container.innerHTML = '';
@@ -628,9 +628,8 @@ function loadPhilosophers() {
         return ca !== cb ? ca - cb : PHILOSOPHERS[a].name.localeCompare(PHILOSOPHERS[b].name, 'zh');
     });
     showPage('select-page');
-    // 分批渲染：每次12张，让UI线程有空隙
     var i = 0, chunk = 12;
-    function renderNext() {
+    (function renderBatch() {
         var end = Math.min(i + chunk, sorted.length);
         for (; i < end; i++) {
             var id = sorted[i];
@@ -647,9 +646,8 @@ function loadPhilosophers() {
             card.onclick = (function(pid) { return function() { startFreeChat(pid); }; })(id);
             container.appendChild(card);
         }
-        if (i < sorted.length) requestAnimationFrame(renderNext);
-    }
-    requestAnimationFrame(renderNext);
+        if (i < sorted.length) requestAnimationFrame(renderBatch);
+    })();
 }
 
 /* 自由对话 */
