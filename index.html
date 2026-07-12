@@ -946,7 +946,7 @@ function enterChat(phId, mode) {
             document.getElementById('mode-ai-led').classList.remove('active');
             _chatMode = 'user';
             _nightPhilosophers = [phId];
-            var nightPrompt = systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围（推测、类比、跨域连接），必须在结尾用 ⚠️ 标注，并说明"这个教材没写，是我根据逻辑推的"\n2. 如果学生让你主导对话，主动出题问他\n3. 保持对话深度，鼓励学生做跨域连接\n4. 【重要】你的第一句话必须是一个基于你核心思想的提问，直接甩问题给学生——不要寒暄、不要自我介绍、不要问"想聊什么"';
+            var nightPrompt = systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围（推测、类比、跨域连接），必须在结尾用 ⚠️ 标注，并说明"这个教材没写，是我根据逻辑推的"\n2. 如果学生让你主导对话，主动出题问他\n3. 保持对话深度，鼓励学生做跨域连接\n4. 【第一句话规则】你的第一句话必须是你的思想体系中的一个核心学术命题，以追问形式甩给学生。要求：选一个教材🔥必考或🟧重要级别的考点来问；追问要逼学生用自己的话解释或评价这个命题；不能是常识问题；不能是寒暄。示例语气：""心即理——如果心本身就是理，那格物是格什么？""';
             messageHistory = [{ role: "system", content: nightPrompt }];
             container.innerHTML = '<div class="msg system">🌙 夜聊 · ' + ph.name + '</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
 
@@ -958,7 +958,7 @@ function enterChat(phId, mode) {
             reviewBadge.style.display = 'none';
             document.getElementById('night-controls').classList.remove('show');
             document.getElementById('end-night-btn').classList.remove('show');
-            var freePrompt = systemPrompt + '\n\n【自由对话】\n【重要】你的第一句话必须是一个基于你核心思想的提问，直接甩问题给学生——不要寒暄、不要自我介绍、不要问"有什么想问的"';
+            var freePrompt = systemPrompt + '\n\n【自由对话】\n【第一句话规则】你的第一句话必须是你的思想体系中的一个核心学术命题，以追问形式甩给学生。要求：选一个教材🔥必考或🟧重要级别的考点来问；追问要逼学生用自己的话解释或评价这个命题；不能是常识问题；不能是寒暄。示例语气：""心即理——如果心本身就是理，那格物是格什么？""';
             messageHistory = [{ role: "system", content: freePrompt }];
             container.innerHTML = '<div class="msg system">═══ 与 ' + ph.name + ' 对话 ═══</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
         }
@@ -1055,7 +1055,7 @@ function send() {
             md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span> <button class="speak-btn" title="朗读">🔊</button>';
             md.querySelector('.speak-btn').onclick = function() { speak(reply, this); };
             container.appendChild(md);
-            if (document.getElementById('auto-speak-toggle').checked) speak(reply, md.querySelector('.speak-btn'));
+            if (typeof speechSynthesis !== 'undefined' && document.getElementById('auto-speak-toggle').checked) speak(reply, md.querySelector('.speak-btn'));
             if (isReviewMode) {
                 var bots = messageHistory.filter(function(m) { return m.role === 'assistant'; });
                 if (bots.length >= 4) setTimeout(function() { showReviewDialog(); }, 1000);
@@ -1077,6 +1077,7 @@ function send() {
 /* 语音 */
 var currentUtterance = null, currentSpeakBtn = null;
 function speak(text, btn) {
+    if (typeof speechSynthesis === 'undefined') return;
     if (currentSpeakBtn === btn && speechSynthesis.speaking) {
         if (speechSynthesis.paused) { speechSynthesis.resume(); btn.classList.add('speaking'); }
         else { speechSynthesis.pause(); btn.classList.remove('speaking'); }
@@ -1094,6 +1095,7 @@ function speak(text, btn) {
     speechSynthesis.speak(u);
 }
 function stopSpeaking() {
+    if (typeof speechSynthesis === 'undefined') return;
     speechSynthesis.cancel();
     if (currentSpeakBtn) currentSpeakBtn.classList.remove('speaking');
     document.getElementById('portrait-frame').classList.remove('speaking');
