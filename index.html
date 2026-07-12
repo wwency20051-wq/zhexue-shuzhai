@@ -209,6 +209,30 @@
     #input-area .send-btn { width: 38px; height: 38px; border: 1px solid var(--vermillion); border-radius: 2px; background: transparent; color: var(--vermillion); font-size: 0.9rem; cursor: pointer; transition: all 0.25s; flex-shrink: 0; }
     #input-area .send-btn:hover { background: var(--vermillion); color: #fff; }
     #input-area .send-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    #input-area .mic-btn {
+        width: 38px; height: 38px; min-width: 38px;
+        border: 1px solid var(--gold-dim); border-radius: 2px;
+        background: transparent; color: var(--text-secondary);
+        font-size: 1rem; cursor: pointer; transition: all 0.25s;
+        flex-shrink: 0; position: relative;
+    }
+    #input-area .mic-btn:hover { border-color: var(--gold); color: var(--gold); }
+    #input-area .mic-btn.recording { border-color: var(--vermillion); color: var(--vermillion); background: rgba(194,59,34,0.1); animation: mic-pulse 1s infinite; }
+    #input-area .mic-btn.unsupported { opacity: 0.3; filter: grayscale(1); }
+    #input-area .mic-btn .hint-tip {
+        display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+        transform: translateX(-50%); background: var(--parchment); color: var(--text-secondary);
+        padding: 4px 10px; border-radius: 2px; font-size: 0.65rem;
+        white-space: nowrap; pointer-events: none;
+    }
+    #input-area .mic-btn:hover .hint-tip { display: block; }
+    @keyframes mic-pulse { 0%,100% { box-shadow: 0 0 0 rgba(194,59,34,0.3); } 50% { box-shadow: 0 0 10px rgba(194,59,34,0.5); } }
+    @media (hover: none) and (pointer: coarse) {
+        #input-area .mic-btn { width: 44px; height: 44px; min-width: 44px; font-size: 1.2rem; }
+        #input-area .send-btn { width: 44px; height: 44px; font-size: 1rem; }
+        #input-area input { font-size: 16px; padding: 12px 14px; }
+        #input-area .mic-btn .hint-tip { display: none !important; }
+    }
 
     /* 复习自评弹窗 */
     #review-dialog { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
@@ -330,6 +354,7 @@
             <div id="messages"></div>
             <div id="input-area">
                 <input id="msg-input" type="text" placeholder="写下你的问题…" onkeydown="if(event.key==='Enter') send()">
+                <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="语音输入">🎤<span class="hint-tip">点击说话</span></button>
                 <button class="send-btn" onclick="send()">答</button>
             </div>
         </div>
@@ -359,6 +384,107 @@ var currentPhilosopher = null;
 var messageHistory = [];
 var isReviewMode = false;
 var currentReviewPhId = null;
+
+/* ============================================================
+   艾宾浩斯复习引擎（localStorage 版，纯前端可用）
+   ============================================================ */
+var EBBINGHAUS_STAGES = [1, 2, 4, 7, 15, 30, 90];
+
+function getReviewState() {
+    try { return JSON.parse(localStorage.getItem('zhexue_review_state')) || {}; }
+    catch(e) { return {}; }
+}
+function saveReviewState(s) {
+    localStorage.setItem('zhexue_review_state', JSON.stringify(s));
+}
+
+function initReviewState(phId) {
+    var s = getReviewState();
+    if (!s[phId]) {
+        var ph = PHILOSOPHERS[phId];
+        s[phId] = {
+            name: ph ? ph.name : phId,
+            stage: 0,
+            last_reviewed: null,
+            next_due: new Date().toISOString().split('T')[0],
+            consecutive_remembered: 0,
+            total_reviews: 0,
+        };
+        saveReviewState(s);
+    }
+    return s[phId];
+}
+
+function getReviewSummary() {
+    var s = getReviewState();
+    var total = 0, mastered = 0;
+    var today = new Date().toISOString().split('T')[0];
+    var dueCount = 0;
+    for (var id in s) {
+        total++;
+        if (s[id].stage >= 7) { mastered++; }
+        else if (s[id].next_due <= today) { dueCount++; }
+    }
+    return {
+        total_philosophers: total,
+        due_today: dueCount,
+        mastered: mastered,
+        in_progress: total - mastered,
+        today: today,
+    };
+}
+
+function getReviewDue() {
+    var s = getReviewState();
+    var today = new Date().toISOString().split('T')[0];
+    var due = [];
+    for (var id in s) {
+        if (s[id].stage >= 7) continue;
+        if (s[id].next_due <= today) {
+            due.push({
+                id: id,
+                name: s[id].name,
+                stage: s[id].stage || 0,
+                total_reviews: s[id].total_reviews || 0,
+                next_due: s[id].next_due,
+            });
+        }
+    }
+    due.sort(function(a, b) { return a.next_due < b.next_due ? -1 : 1; });
+    return due;
+}
+
+function submitReviewResult(phId, result) {
+    var s = getReviewState();
+    if (!s[phId]) initReviewState(phId);
+    var ps = s[phId];
+    var curStage = ps.stage || 0;
+    var newStage;
+    if (result === 'remembered') {
+        newStage = Math.min(curStage + 1, 7);
+        ps.consecutive_remembered = (ps.consecutive_remembered || 0) + 1;
+    } else if (result === 'forgot') {
+        newStage = Math.max(curStage - 1, 0);
+        ps.consecutive_remembered = 0;
+    } else {
+        newStage = curStage;
+        ps.consecutive_remembered = 0;
+    }
+    var days = newStage >= 7 ? 365 : EBBINGHAUS_STAGES[newStage] || 365;
+    var nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + days);
+    ps.stage = newStage;
+    ps.last_reviewed = new Date().toISOString().split('T')[0];
+    ps.next_due = nextDate.toISOString().split('T')[0];
+    ps.total_reviews = (ps.total_reviews || 0) + 1;
+    saveReviewState(s);
+    return {
+        stage: newStage,
+        next_due: ps.next_due,
+        mastered: newStage >= 7,
+        total_reviews: ps.total_reviews,
+    };
+}
 
 function showPage(id) {
     document.querySelectorAll('#login-page, #select-page, #review-page, #chat-page').forEach(function(p) {
@@ -429,7 +555,48 @@ function startFreeChat(phId) {
 }
 
 /* 复习系统 */
+function showReview() {
+    showPage('review-page');
+    loadReviewDashboard();
+}
 
+function loadReviewDashboard() {
+    var s = getReviewSummary();
+    document.getElementById('r-due').textContent = s.due_today;
+    document.getElementById('r-total').textContent = s.total_philosophers;
+    document.getElementById('r-mastered').textContent = s.mastered;
+    document.getElementById('r-progress').textContent = s.in_progress;
+
+    var due = getReviewDue();
+    var c = document.getElementById('review-items');
+    c.innerHTML = '';
+    if (!due.length) {
+        c.innerHTML = '<div class="review-empty"><div class="big">🎉</div>今日无待复习<br><span style="font-size:0.75rem;color:#555;">每次复习后自动加入艾宾浩斯计划</span></div>';
+        return;
+    }
+    due.forEach(function(item) {
+        var ph = PHILOSOPHERS[item.id];
+        if (!ph) return;
+        var dots = '';
+        for (var i = 0; i < 7; i++) dots += '<div class="stage-dot' + (i < item.stage ? ' active' : '') + '"></div>';
+        var d = document.createElement('div');
+        d.className = 'review-item';
+        d.innerHTML =
+            '<div class="ri-icon" style="color:' + (ph.color || '#c9a96e') + '">' + ph.emoji + '</div>' +
+            '<div class="ri-info"><div class="ri-name">' + item.name + '</div>' +
+            '<div class="ri-meta">第' + (item.stage + 1) + '轮 · 已复习' + item.total_reviews + '次</div>' +
+            '<div class="stage-bar">' + dots + '</div></div>' +
+            '<button class="btn-small btn-gold" onclick="startReview('' + item.id + '')">开始复习</button>';
+        c.appendChild(d);
+    });
+}
+
+function startReview(phId) {
+    isReviewMode = true;
+    currentReviewPhId = phId;
+    enterChat(phId, 'review');
+}
+/* API_REVIEW_END */
 
 function enterChat(phId, mode) {
     currentPhilosopher = phId;
@@ -489,7 +656,14 @@ function submitReview(result) {
     document.getElementById('review-dialog').classList.remove('show');
     var phId = document.getElementById('review-dialog').dataset.phId;
     if (!phId) return;
-
+var data = submitReviewResult(phId, result);
+    var c = document.getElementById('messages');
+    var msg = result === 'remembered' ? ('✅ 记住了！第' + (data.stage+1) + '轮' + (data.stage>=7?' 🎉 已掌握！':'')) :
+             result === 'forgot' ? ('❌ 忘了 · 回到第' + (data.stage+1) + '轮') :
+             '🤔 有点模糊 · 保持第' + (data.stage+1) + '轮';
+    c.insertAdjacentHTML('beforeend', '<div class="msg system">' + msg + '</div>');
+    c.scrollTop = c.scrollHeight;
+    setTimeout(function() { backToSelect(); }, 1500);
 }
 
 /* 发送消息 */
@@ -568,6 +742,74 @@ function stopSpeaking() {
 if (speechSynthesis) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = function() { speechSynthesis.getVoices(); }; }
 
 function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+/* 语音输入 */
+var recognition = null;
+var isRecording = false;
+var micBtn = document.getElementById('mic-btn');
+
+function initSpeechRecognition() {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        if (micBtn) micBtn.classList.add('unsupported');
+        micBtn.title = '浏览器不支持语音输入（请用 Chrome/Edge）';
+        return;
+    }
+    recognition = new SR();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onresult = function(event) {
+        var transcript = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                var input = document.getElementById('msg-input');
+                input.value = transcript;
+                input.focus();
+                // 语音识别结束自动发送
+                send();
+            }
+        }
+    };
+    recognition.onend = function() {
+        isRecording = false;
+        if (micBtn) micBtn.classList.remove('recording');
+    };
+    recognition.onerror = function(event) {
+        isRecording = false;
+        if (micBtn) micBtn.classList.remove('recording');
+        if (event.error !== 'aborted' && event.error !== 'no-speech') {
+            console.warn('语音识别错误:', event.error);
+        }
+    };
+}
+
+function toggleMic() {
+    if (!recognition) {
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { alert('你的浏览器不支持语音输入，请用 Chrome 或 Edge'); return; }
+        initSpeechRecognition();
+    }
+    if (isRecording) {
+        recognition.stop();
+        isRecording = false;
+        micBtn.classList.remove('recording');
+    } else {
+        try {
+            recognition.start();
+            isRecording = true;
+            micBtn.classList.add('recording');
+        } catch(e) {
+            // 防止重复start报错
+            setTimeout(function() { toggleMic(); }, 300);
+        }
+    }
+}
+
+// 页面加载后初始化语音识别
+initSpeechRecognition();
 
 /* 启动 */
 (function() {
