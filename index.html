@@ -136,6 +136,8 @@
 
     /* 聊天页 */
     #chat-page { display: none; height: 100vh; }
+    /* 真人图片丑，全站隐藏，只用 emoji 字符 */
+    #portrait-img { display: none !important; }
     .chat-layout { display: flex; height: 100vh; }
     .portrait-panel {
         width: 30%; min-width: 220px;
@@ -195,6 +197,8 @@
     .night-switch button:hover:not(.active) { background: rgba(255,255,255,0.03); }
     .call-btn { padding: 3px 10px; border: 1px solid var(--parchment-light); border-radius: 2px; background: transparent; color: var(--text-secondary); font-size: 0.65rem; cursor: pointer; font-family: inherit; transition: all 0.2s; }
     .call-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .save-chat-btn { display: inline-flex; align-items: center; gap: 3px; background:rgba(100,180,100,0.12); border:1px solid rgba(100,180,100,0.25); color:#8cc88c; padding:4px 9px; border-radius:2px; cursor:pointer; font-size:0.7rem; font-family:inherit; white-space:nowrap; transition:all 0.2s; }
+    .save-chat-btn:hover { background:rgba(100,180,100,0.25); border-color:rgba(100,180,100,0.5); }
     .end-night-btn { display: none; padding: 6px 14px; border: 1px solid rgba(194,59,34,0.3); border-radius: 2px; background: transparent; color: var(--vermillion); font-size: 0.7rem; cursor: pointer; font-family: inherit; transition: all 0.25s; white-space: nowrap; }
     .end-night-btn:hover { background: rgba(194,59,34,0.1); }
     .end-night-btn.show { display: inline-flex; align-items: center; gap: 4px; }
@@ -309,6 +313,25 @@
         #night-controls { gap: 4px; }
         #night-controls .mode-label { display: none; }
         #ph-search { font-size: 16px; }
+        /* 手机 header 紧凑 */
+        #chat-header { padding: 8px 10px; gap: 4px; }
+        #chat-header .back-btn { padding: 4px 6px; }
+        #chat-header .ph-mini-info .mini-char { font-size: 1rem; }
+        #chat-header .ph-mini-info .mini-name { font-size: 0.78rem; }
+        #chat-header .ph-mini-info .mini-extra { font-size: 0.6rem; }
+        .mode-badge { font-size: 0.55rem; padding: 2px 6px; }
+        .save-chat-btn { font-size: 0.6rem; padding: 3px 6px; }
+        #speech-controls { gap: 4px; }
+        .auto-speak-label { font-size: 0.6rem; }
+        #voice-select { max-width: 80px; font-size: 0.55rem !important; }
+        .end-night-btn { font-size: 0.6rem; padding: 4px 8px; }
+        .night-toggle { font-size: 0.65rem; padding: 4px 10px; }
+        .call-btn { font-size: 0.55rem; padding: 2px 8px; }
+        .night-switch button { font-size: 0.55rem; padding: 3px 6px; }
+    }
+    /* 横屏手机/小平板：左边头像面板太占空间，隐藏 */
+    @media (max-height: 520px) {
+        .portrait-panel { display: none; }
     }
 </style>
 </head>
@@ -337,8 +360,9 @@
         <a onclick="switchUser()" style="color:#555;">切换Key</a>
     </div>
     <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
-        <button class="btn-small btn-gold" onclick="showReview()">📖 今日复习</button>
+        <button class="btn-small btn-gold" onclick="showReview()">📖 复习</button>
         <button class="night-toggle" id="night-toggle-btn" onclick="toggleNightMode()">🌙 夜聊</button>
+        <button class="night-toggle" onclick="toggleNotesPanel()">📋 笔记</button>
     </div>
     <div id="wechat-banner" style="display:none;background:#2a2018;border-left:3px solid #c9a96e;padding:6px 12px;margin:8px auto;font-size:0.7rem;color:#b8a88a;border-radius:2px;max-width:420px;line-height:1.5;">
         📱 微信内语音功能受限，文字对话完全正常。建议用 <b>Chrome</b> 打开获取完整语音支持
@@ -401,6 +425,7 @@
                     </div>
                 </div>
                 <span class="mode-badge free" id="mode-badge">🗣 自由对话</span>
+                <button class="save-chat-btn" id="save-chat-btn" onclick="saveFullConversation()" title="保存整段对话为笔记">💾 保存</button>
                 <div class="night-controls" id="night-controls">
                     <span class="mode-label">模式</span>
                     <div class="night-switch">
@@ -458,6 +483,25 @@
             <div class="summary-loading">
                 <div class="spinner"></div>
                 <div>分析夜聊内容…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 笔记面板 -->
+<div class="summary-overlay" id="notes-overlay">
+    <div class="summary-box" style="max-width:480px;max-height:70vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px 8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span style="font-size:1rem;font-weight:600;">📋 我的笔记</span>
+            <div style="display:flex;gap:6px;">
+                <button class="ss-btn" onclick="copyAllNotes()" style="font-size:0.75rem;padding:4px 12px;">📋 复制全部</button>
+                <button class="ss-btn" onclick="closeNotes()" style="font-size:0.75rem;padding:4px 12px;">✕ 关闭</button>
+            </div>
+        </div>
+        <div id="notes-list" style="padding:12px 20px 20px;">
+            <div style="text-align:center;padding:40px 20px;color:#666;">
+                <div style="font-size:2rem;margin-bottom:8px;">📝</div>
+                还没有保存的笔记<br><span style="font-size:0.75rem;">聊天中点击 💾 按钮即可记录</span>
             </div>
         </div>
     </div>
@@ -685,7 +729,25 @@ function getReviewStateLocal() {
     catch(e) { return {}; }
 }
 function getReviewState() {
-    return getReviewStateLocal();
+    var s = getReviewStateLocal();
+    // 保底自动填充：只要 localStorage 是空的，就把所有哲学家都加进去
+    var hasAny = false;
+    for (var _k in s) { hasAny = true; break; }
+    if (!hasAny) {
+        for (var _id in PHILOSOPHERS) {
+            var _ph = PHILOSOPHERS[_id];
+            s[_id] = {
+                name: _ph ? _ph.name : _id,
+                stage: 0,
+                last_reviewed: null,
+                next_due: new Date().toISOString().split('T')[0],
+                consecutive_remembered: 0,
+                total_reviews: 0,
+            };
+        }
+        saveReviewState(s);
+    }
+    return s;
 }
 function saveReviewState(s) {
     localStorage.setItem('zhexue_review_state', JSON.stringify(s));
@@ -942,18 +1004,11 @@ function showReview() {
     loadReviewDashboard();
 }
 
-function loadReviewDashboard() {
-    var s = getReviewSummary();
-    document.getElementById('r-due').textContent = s.due_today;
-    document.getElementById('r-total').textContent = s.total_philosophers;
-    document.getElementById('r-mastered').textContent = s.mastered;
-    document.getElementById('r-progress').textContent = s.in_progress;
-
-    var due = getReviewDue();
+function renderReviewList(due) {
     var c = document.getElementById('review-items');
     c.innerHTML = '';
-    if (!due.length) {
-        c.innerHTML = '<div class="review-empty"><div class="big">🎉</div>今日无待复习<br><span style="font-size:0.75rem;color:#555;">每次复习后自动加入艾宾浩斯计划</span></div>';
+    if (!due || !due.length) {
+        c.innerHTML = '<div class="review-empty"><div class="big">🎉</div>今日无待复习<br><span style="font-size:0.75rem;color:#555;">所有内容已复习完就等新笔记吧</span></div>';
         return;
     }
     due.forEach(function(item) {
@@ -971,6 +1026,32 @@ function loadReviewDashboard() {
             '<button class="btn-small btn-gold" onclick="startReview(\'' + item.id + '\')">开始复习</button>';
         c.appendChild(d);
     });
+}
+
+function loadReviewDashboard() {
+    // 纯前端方案：直接从 localStorage 读取（getReviewState 会自动填充）
+    var s = getReviewSummary();
+    document.getElementById('r-due').textContent = s.due_today;
+    document.getElementById('r-total').textContent = s.total_philosophers;
+    document.getElementById('r-mastered').textContent = s.mastered;
+    document.getElementById('r-progress').textContent = s.in_progress;
+    renderReviewList(getReviewDue());
+
+    // 后台同步服务端（不阻塞渲染）
+    fetch('/api/review/init-from-notes').then(function(r) { return r.json(); }).then(function(data) {
+        var s2 = data.summary || {};
+        document.getElementById('r-due').textContent = s2.due_today || 0;
+        document.getElementById('r-total').textContent = s2.total_philosophers || 0;
+        document.getElementById('r-mastered').textContent = s2.mastered || 0;
+        document.getElementById('r-progress').textContent = s2.in_progress || 0;
+        if (data.due && data.due.length) {
+            // 同步到 localStorage
+            fetch('/api/review/state').then(function(r2) { return r2.json(); }).then(function(serverState) {
+                localStorage.setItem('zhexue_review_state', JSON.stringify(serverState));
+                renderReviewList(data.due);
+            }).catch(function() {});
+        }
+    }).catch(function() {});
 }
 
 function startReview(phId) {
@@ -1036,7 +1117,7 @@ function enterChat(phId, mode) {
             document.getElementById('mode-ai-led').classList.remove('active');
             _chatMode = 'user';
             _nightPhilosophers = [phId];
-            var nightPrompt = identityRule + systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围，必须在结尾用 ⚠️ 标注\n2. 如果学生让你主导对话，主动出题问他\n3. 鼓励学生做跨域连接\n4. 【第一句话】只问关于' + ph.name + '自己的核心思想。';
+            var nightPrompt = identityRule + systemPrompt + '\n\n【夜聊模式】\n1. 当你的回答超出了教材已知内容的范围，必须在结尾用 ⚠️ 标注\n2. 如果学生让你主导对话，主动出题问他\n3. 鼓励学生做跨域连接\n4. 【第一句话】只问关于' + ph.name + '自己的核心思想。\n5. 每轮回答末尾追问学生一个问题，保持对话延续。';
             messageHistory = [{ role: "system", content: nightPrompt }];
             container.innerHTML = '<div class="msg system">🌙 夜聊 · ' + ph.name + '</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
 
@@ -1048,7 +1129,7 @@ function enterChat(phId, mode) {
             reviewBadge.style.display = 'none';
             document.getElementById('night-controls').classList.remove('show');
             document.getElementById('end-night-btn').classList.remove('show');
-            var freePrompt = identityRule + systemPrompt + '\n\n【自由对话】\n【第一句话】只问关于' + ph.name + '自己的核心思想。';
+            var freePrompt = identityRule + systemPrompt + '\n\n【自由对话】\n【第一句话】只问关于' + ph.name + '自己的核心思想。\n【重要】每轮回答末尾追问学生一个问题，让对话像真正的学术讨论一样延续下去。';
             messageHistory = [{ role: "system", content: freePrompt }];
             container.innerHTML = '<div class="msg system">═══ 与 ' + ph.name + ' 对话 ═══</div><div class="msg system" id="first-question">🧠 ' + ph.name + '正在想问题…</div>';
         }
@@ -1110,14 +1191,29 @@ function submitReview(result) {
     document.getElementById('review-dialog').classList.remove('show');
     var phId = document.getElementById('review-dialog').dataset.phId;
     if (!phId) return;
-var data = submitReviewResult(phId, result);
     var c = document.getElementById('messages');
-    var msg = result === 'remembered' ? ('✅ 记住了！第' + (data.stage+1) + '轮' + (data.stage>=7?' 🎉 已掌握！':'')) :
-             result === 'forgot' ? ('❌ 忘了 · 回到第' + (data.stage+1) + '轮') :
-             '🤔 有点模糊 · 保持第' + (data.stage+1) + '轮';
-    c.insertAdjacentHTML('beforeend', '<div class="msg system">' + msg + '</div>');
-    c.scrollTop = c.scrollHeight;
-    setTimeout(function() { backToSelect(); }, 1500);
+    // 提交复习结果到服务端（持久化到 .progress/review_state.json）
+    fetch('/api/review/result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ph_id: phId, result: result })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        var msg = result === 'remembered' ? ('✅ 记住了！第' + (data.stage+1) + '轮' + (data.stage>=7?' 🎉 已掌握！':'')) :
+                 result === 'forgot' ? ('❌ 忘了 · 回到第' + (data.stage+1) + '轮') :
+                 '🤔 有点模糊 · 保持第' + (data.stage+1) + '轮';
+        c.insertAdjacentHTML('beforeend', '<div class="msg system">' + msg + '</div>');
+        c.scrollTop = c.scrollHeight;
+        setTimeout(function() { backToSelect(); }, 1500);
+    }).catch(function() {
+        // fallback: 用 localStorage
+        var data = submitReviewResult(phId, result);
+        var msg = result === 'remembered' ? ('✅ 记住了！第' + (data.stage+1) + '轮' + (data.stage>=7?' 🎉 已掌握！':'')) :
+                 result === 'forgot' ? ('❌ 忘了 · 回到第' + (data.stage+1) + '轮') :
+                 '🤔 有点模糊 · 保持第' + (data.stage+1) + '轮';
+        c.insertAdjacentHTML('beforeend', '<div class="msg system">' + msg + '</div>');
+        c.scrollTop = c.scrollHeight;
+        setTimeout(function() { backToSelect(); }, 1500);
+    });
 }
 
 /* 发送消息 */
@@ -1139,7 +1235,7 @@ function send() {
     fetch(DEEPSEEK_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY() },
-        body: JSON.stringify({ model: 'deepseek-chat', messages: messageHistory, temperature: 0.7, max_tokens: 1024 })
+        body: JSON.stringify({ model: 'deepseek-chat', messages: messageHistory, temperature: 0.7, max_tokens: 2048 })
     }).then(function(r) { return r.json(); }).then(function(data) {
         typing.remove();
         if (data.error) {
@@ -1150,7 +1246,10 @@ function send() {
             messageHistory.push({ role: "assistant", content: reply });
             var md = document.createElement('div');
             md.className = 'msg bot';
-            md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>' + (_speechSupported ? ' <button class="speak-btn" title="朗读">🔊</button>' : '');
+            var btns = '';
+            if (_speechSupported) btns += ' <button class="speak-btn" title="朗读">🔊</button>';
+            btns += ' <button class="note-btn" title="记入笔记" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border:none;border-radius:50%;background:transparent;color:var(--text-secondary);cursor:pointer;font-size:0.7rem;margin-left:4px;transition:all0.2s;vertical-align:middle;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'" onclick="saveExchange(\'' + _escapeJsStr(text) + '\', \'' + _escapeJsStr(reply) + '\', this)">💾</button>';
+            md.innerHTML = '<span class="msg-content">' + escapeHtml(reply) + '</span>' + btns;
             md.querySelector('.speak-btn').onclick = function() { speak(reply, this); };
             container.appendChild(md);
             // 自动朗读：在 iOS 上由于用户手势限制，异步回调中调用 speak() 会静默失败，所以不自动朗读
@@ -1481,16 +1580,10 @@ function endNightChat() {
         }
         showSummaryResult(result);
 
-        // 保存到后端
-        var saveData = {
-            philosophers: _nightPhilosophers.map(function(id) { return { id: id, name: (PHILOSOPHERS[id] || {}).name || id }; }),
-            analysis: result,
-            messages: chatMessages.map(function(m) {
-                return { role: m.role, content: m.content.substring(0, 500) };
-            }),
-            date: new Date().toISOString().split('T')[0]
-        };
-        // 夜间对话保存（离线版不启用）
+        // 保存夜聊总结到本地笔记
+        var phList = _nightPhilosophers.map(function(id) { return { id: id, name: (PHILOSOPHERS[id] || {}).name || id }; });
+        saveNightChatSummary(result, chatMessages, phList);
+        _noteToast('🌙 夜聊已存为笔记', true);
     }).catch(function(err) {
         showSummaryResult({ theme: '网络错误', quotes: [], connections: [], risks: [err.message], questions: [] });
     });
@@ -1529,6 +1622,239 @@ function closeSummary() {
     _nightPhilosophers = [];
     clearNightDraft();
     backToSelect();
+}
+
+/* ====== 笔记存储（纯前端 localStorage） ====== */
+
+/* 转义文本中的单引号和换行，用于内联 onclick */
+function _escapeJsStr(s) {
+    return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n').replace(/\r/g, '');
+}
+
+/* 笔记列表 */
+function _notesGetAll() {
+    try { return JSON.parse(localStorage.getItem('zhexue_notes') || '[]'); } catch(e) { return []; }
+}
+function _notesSave(notes) {
+    try { localStorage.setItem('zhexue_notes', JSON.stringify(notes)); } catch(e) {}
+}
+
+/* 添加一条笔记 */
+function _notesAdd(phId, phName, type, userMsg, aiMsg, tags) {
+    var notes = _notesGetAll();
+    var date = new Date().toISOString().split('T')[0];
+    var time = new Date().toTimeString().split(' ')[0].substring(0, 5);
+
+    var md = '---\n';
+    md += 'created: ' + date + '\n';
+    md += 'time: ' + time + '\n';
+    md += 'philosopher: "[[' + phName + ']]"\n';
+    md += 'tags: [chat';
+    if (tags) { tags.forEach(function(t) { md += ', ' + t; }); }
+    md += ']\n';
+    md += 'type: chat-note\n';
+    md += '---\n\n';
+    md += '## 与' + phName + '对话摘录 · ' + time + '\n\n';
+    if (userMsg) md += '**你：** ' + userMsg + '\n\n';
+    if (aiMsg) md += '**' + phName + '：** ' + aiMsg + '\n\n';
+
+    notes.push({
+        id: Date.now(),
+        phId: phId,
+        phName: phName,
+        type: type,
+        date: date,
+        time: time,
+        markdown: md,
+        tags: tags || []
+    });
+    _notesSave(notes);
+    return notes;
+}
+
+/* 保存整段对话为笔记 */
+function saveFullConversation() {
+    var ph = PHILOSOPHERS[currentPhilosopher];
+    if (!ph || !messageHistory || messageHistory.length < 2) {
+        _noteToast('对话太短', false);
+        return;
+    }
+    var chatMessages = messageHistory.filter(function(m) { return m.role !== 'system'; });
+    if (chatMessages.length < 2) { _noteToast('对话太短', false); return; }
+
+    var date = new Date().toISOString().split('T')[0];
+    var time = new Date().toTimeString().split(' ')[0].substring(0, 5);
+    var mode = isReviewMode ? '复习' : '自由对话';
+
+    var md = '---\n';
+    md += 'created: ' + date + '\n';
+    md += 'time: ' + time + '\n';
+    md += 'philosopher: "[[' + ph.name + ']]"\n';
+    md += 'tags: [chat, ' + mode + ']\n';
+    md += 'type: chat-note\n';
+    md += '---\n\n';
+    md += '# 与' + ph.name + '的对话 · ' + date + ' ' + time + '\n\n';
+
+    chatMessages.forEach(function(m) {
+        if (m.role === 'user') md += '**你：** ' + m.content + '\n\n';
+        else md += '**' + ph.name + '：** ' + m.content + '\n\n';
+    });
+    md += '---\n';
+
+    var notes = _notesGetAll();
+    notes.push({
+        id: Date.now(),
+        phId: currentPhilosopher,
+        phName: ph.name,
+        type: 'conversation',
+        date: date,
+        time: time,
+        markdown: md,
+        tags: [mode]
+    });
+    _notesSave(notes);
+    _noteToast('✅ 已保存整段对话', true);
+}
+
+/* 保存单条对话（💾 按钮） */
+function saveExchange(userMsg, aiMsg, btn) {
+    var ph = PHILOSOPHERS[currentPhilosopher];
+    if (!ph) return;
+    _notesAdd(currentPhilosopher, ph.name, 'exchange', userMsg, aiMsg, ['exchange']);
+    _noteToast('✅ 已记入笔记', true);
+    if (btn) { btn.textContent = '✅'; btn.style.opacity = '0.5'; }
+}
+
+/* 保存夜聊总结 */
+function saveNightChatSummary(analysis, chatMessages, philosophers) {
+    var date = new Date().toISOString().split('T')[0];
+    var time = new Date().toTimeString().split(' ')[0].substring(0, 5);
+    var phNames = philosophers.map(function(p) { return p.name; }).join('、');
+
+    var md = '---\n';
+    md += 'created: ' + date + '\n';
+    md += 'time: ' + time + '\n';
+    md += 'philosopher: ';
+    philosophers.forEach(function(p) { md += '"[[' + p.name + ']]" '; });
+    md += '\n';
+    md += 'tags: [夜聊]\n';
+    md += 'type: nightchat\n';
+    md += '---\n\n';
+    md += '# 🌙 夜聊 · ' + date + '\n\n';
+    md += '**参与者：** ' + phNames + '\n\n';
+    if (analysis.theme) { md += '## 主题\n\n' + analysis.theme + '\n\n'; }
+    if (analysis.quotes && analysis.quotes.length) {
+        md += '## 💬 你的原话\n\n';
+        analysis.quotes.forEach(function(q) { md += '> ' + q + '\n\n'; });
+    }
+    if (analysis.connections && analysis.connections.length) {
+        md += '## 🔗 你的连接\n\n';
+        analysis.connections.forEach(function(c) { md += '- ' + c + '\n'; });
+        md += '\n';
+    }
+    if (analysis.questions && analysis.questions.length) {
+        md += '## ❓ 遗留问题\n\n';
+        analysis.questions.forEach(function(q) { md += '- ' + q + '\n'; });
+        md += '\n';
+    }
+    md += '## 对话记录\n\n';
+    chatMessages.forEach(function(m) {
+        if (m.role === 'user') md += '**你：** ' + m.content.substring(0, 500) + '\n\n';
+        else md += '**AI：** ' + m.content.substring(0, 500) + '\n\n';
+    });
+    md += '---\n';
+
+    var notes = _notesGetAll();
+    notes.push({
+        id: Date.now(),
+        phId: philosophers[0] ? philosophers[0].id : '',
+        phName: phNames,
+        type: 'nightchat',
+        date: date,
+        time: time,
+        markdown: md,
+        tags: ['夜聊']
+    });
+    _notesSave(notes);
+}
+
+/* 复制全部笔记到剪贴板 */
+function copyAllNotes() {
+    var notes = _notesGetAll();
+    if (!notes.length) { _noteToast('还没有笔记', false); return; }
+    var allMd = notes.map(function(n) { return n.markdown; }).join('\n---\n');
+    var ta = document.createElement('textarea');
+    ta.value = allMd;
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        _noteToast('📋 已复制 ' + notes.length + ' 条笔记到剪贴板', true);
+    } catch(e) {
+        _noteToast('复制失败', false);
+    }
+    document.body.removeChild(ta);
+}
+
+/* 删除一条笔记 */
+function deleteNote(id) {
+    var notes = _notesGetAll();
+    notes = notes.filter(function(n) { return n.id !== id; });
+    _notesSave(notes);
+    renderNotesList();
+}
+
+/* 渲染笔记列表 */
+function renderNotesList() {
+    var notes = _notesGetAll();
+    var container = document.getElementById('notes-list');
+    if (!container) return;
+    if (!notes.length) {
+        container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#666;"><div style="font-size:2rem;margin-bottom:8px;">📝</div>还没有保存的笔记<br><span style="font-size:0.75rem;">聊天中点击 💾 按钮即可记录</span></div>';
+        return;
+    }
+    container.innerHTML = '';
+    // 按时间倒序
+    notes.slice().reverse().forEach(function(n) {
+        var d = document.createElement('div');
+        d.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:4px;padding:12px;margin-bottom:8px;';
+        d.innerHTML =
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+            '<span style="font-size:0.75rem;color:' + (n.type === 'nightchat' ? '#c9a96e' : '#8ec89e') + ';">' +
+            (n.type === 'nightchat' ? '🌙 夜聊' : n.type === 'conversation' ? '💬 对话' : '💡 摘录') +
+            ' · ' + n.phName + '</span>' +
+            '<span style="font-size:0.65rem;color:#555;">' + n.date + ' ' + (n.time || '') + '</span></div>' +
+            '<div style="font-size:0.7rem;color:#888;max-height:60px;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;">' + escapeHtml(n.markdown.substring(0, 200)) + '…</div>' +
+            '<div style="text-align:right;"><button class="btn-small" style="font-size:0.6rem;padding:2px 8px;color:#c55;" onclick="deleteNote(' + n.id + ')">删除</button></div>';
+        container.appendChild(d);
+    });
+}
+
+/* 切换笔记面板 */
+function toggleNotesPanel() {
+    renderNotesList();
+    document.getElementById('notes-overlay').classList.toggle('show');
+}
+
+function closeNotes() {
+    document.getElementById('notes-overlay').classList.remove('show');
+}
+
+/* 提示条 */
+var _noteToastTimer = null;
+function _noteToast(msg, ok) {
+    var t = document.getElementById('note-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'note-toast';
+        t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:4px;font-size:0.85rem;z-index:9999;transition:opacity 0.3s;background:rgba(30,25,20,0.95);color:#e8ddd0;border:1px solid rgba(201,169,110,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+        document.body.appendChild(t);
+    }
+    t.style.borderColor = ok ? 'rgba(100,200,100,0.4)' : 'rgba(200,100,100,0.4)';
+    t.textContent = msg;
+    t.style.opacity = '1';
+    if (_noteToastTimer) clearTimeout(_noteToastTimer);
+    _noteToastTimer = setTimeout(function() { t.style.opacity = '0'; }, 2500);
 }
 
 /* 语音输入 */
@@ -1645,7 +1971,13 @@ if (navigator.userAgent.indexOf('MicroMessenger') !== -1) {
             });
         }
     }
-    console.log('[哲思书斋] v2.1 loaded');
+    console.log('[哲思书斋] v2.2 loaded');
+        // 版本自检：如果页面版本变了，清空旧的复习状态让 getReviewState 自动重建
+        var _pgVer = localStorage.getItem('zhexue_page_ver');
+        if (!_pgVer || _pgVer !== 'v2.2') {
+            localStorage.removeItem('zhexue_review_state');
+            localStorage.setItem('zhexue_page_ver', 'v2.2');
+        }
 })();
 
 </script>
