@@ -764,7 +764,7 @@ function showPage(id) {
     document.querySelectorAll('#login-page, #select-page, #review-page, #chat-page').forEach(function(p) {
         p.style.display = 'none';
     });
-    document.getElementById(id).style.display = id === 'chat-page' ? '' : 'flex';
+    document.getElementById(id).style.display = 'flex';
     if (id === 'review-page') loadReviewDashboard();
 }
 
